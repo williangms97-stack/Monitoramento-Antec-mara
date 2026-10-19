@@ -277,6 +277,8 @@ const MES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','
 const curto = k => { const [y,m,d] = k.split('-'); return `${+d} ${MES[+m-1]}`; };
 const hoje = () => dkey(new Date());
 const diasEntre = (a,b) => Math.round((new Date(b+'T12:00')-new Date(a+'T12:00'))/86400000);
+// o painel considera só o local (armazém/antecâmara); a posição é a última parte depois de " · "
+function semPosicao(l){ l=String(l||'').trim(); const i=l.lastIndexOf(' · '); return i>0 ? l.slice(0,i).trim() : l; }
 function dur(ms){ if(!ms||ms<0) return '0h 00m'; const m=Math.floor(ms/60000), d=Math.floor(m/1440), h=Math.floor((m%1440)/60); return (d?d+'d ':'')+h+'h '+pad(m%60)+'m'; }
 const tsDe = (data, hr) => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(data||''); return m ? new Date(`${m[3]}-${m[2]}-${m[1]}T${(hr||'00:00:00').slice(0,8)}`).getTime() : 0; };
 function empresaDoLote(l){ l = String(l||'').toUpperCase(); if(l.substr(1,3)==='WML') return 'Basf'; if(l.substr(2,2)==='DM') return 'Dois Marcos'; return 'Terceiro'; }
@@ -327,7 +329,7 @@ function status(){
 function processar(){
   REGS = (DADOS.registros||[]).filter(r=>String(r.situacao||'').indexOf('Excluída')!==0).map(r=>{
     const ts = Number(r.ts) || tsDe(r.data, r.hora), d = new Date(ts), tipo = r.tipo||'Lote', lote = String(r.lote||'').toUpperCase();
-    return { id:r.id, ts, data:dkey(d), hora:hora(d), tipo, lote, empresa: tipo==='Pré-lote' ? '' : empresaDoLote(lote), local:r.local||'', usuario:r.aparelho||'', dados:r.dados };
+    return { id:r.id, ts, data:dkey(d), hora:hora(d), tipo, lote, empresa: tipo==='Pré-lote' ? '' : empresaDoLote(lote), local:semPosicao(r.local), localCompleto:r.local||'', usuario:r.aparelho||'', dados:r.dados };
   }).filter(r=>r.ts && r.lote).sort((a,b)=>a.ts-b.ts);
   // checklist válido de cada dia = último evento (Concluído / Reaberto); a planilha às vezes converte o dia em data
   const diaOk = (d, ts) => /^\d{4}-\d{2}-\d{2}$/.test(String(d||'')) ? String(d) : dkey(new Date(Number(ts)));
