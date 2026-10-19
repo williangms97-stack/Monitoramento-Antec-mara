@@ -3,242 +3,141 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#d9ecd6">
+<meta name="theme-color" content="#0f2a3d">
 <title>Painel das Antecâmaras</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
 <style>
-/* Layout: fundo menta + um grande cartão branco; 2 colunas (movimento do dia | cartão preto com a curva);
-   linha de pílulas (comparativo ontem/hoje | tempo fora e locais); tabelas; barra preta de navegação embaixo.
-   Visual único e deliberado (claro), como o modelo de referência. */
+/* Layout: cabeçalho fixo + filtros em uma linha; números do dia; gráficos em grade 2×2; tabelas de detalhe embaixo */
 :root{
+  --bg:#eef3f6; --surface:#ffffff; --ink:#0f2a3d; --muted:#587080; --faint:#8aa0ad; --line:#d3dee6; --grid:#e4ebf0;
+  --accent:#0b6fa4; --accent-ink:#ffffff; --frost:#dcebf4;
+  --s1:#2a78d6; --s2:#eb6834;                       /* séries: Lote, Pré-lote (validadas) */
+  --q1:#86b6ef; --q2:#3987e5; --q3:#1c5cab; --q4:#0d366b;   /* tempo fora: rampa ordinal */
+  --ok:#1d7a4f; --warn:#b86a00; --bad:#b3261e; --ok-bg:#e1f3e9; --warn-bg:#fff2dc; --bad-bg:#fde7e5;
+  --f-ui:"IBM Plex Sans Condensed","Roboto Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-code:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
   color-scheme:light;
-  --mint-1:#e6f2e2; --mint-2:#cfe7c9;
-  --paper:#ffffff; --ink:#0b0b0b; --ink-2:#3d3d3b; --muted:#7b7b76; --line:#0b0b0b; --hair:#e3e3dd;
-  --lime:#a6e86e; --lime-ink:#1d3a07; --lav:#a9a5f4; --lav-ink:#25205e;
-  --night:#0b0b0b; --night-2:#1b1b1a; --night-ink:#f2f2ee; --night-muted:#9a9a93;
-  --bad:#d03b3b; --warn:#e08a00; --ok:#2f8a1d;
-  --shadow:4px 4px 0 var(--ink);
-  --shadow-sm:3px 3px 0 var(--ink);
-  --f:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;
 }
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0b1820; --surface:#12242f; --ink:#e3eef4; --muted:#8fa7b5; --faint:#6b8594; --line:#22394a; --grid:#1b3140;
+  --accent:#4fb0e3; --accent-ink:#06202e; --frost:#173244;
+  --s1:#3987e5; --s2:#d95926;
+  --q1:#86b6ef; --q2:#5598e7; --q3:#2a78d6; --q4:#1c5cab;
+  --ok:#5cc792; --warn:#f0a840; --bad:#ff7b72; --ok-bg:#12301f; --warn-bg:#33270f; --bad-bg:#3a1a18;
+  color-scheme:dark;
+}}
 *{box-sizing:border-box}
 html,body{margin:0}
-body{background:linear-gradient(160deg,var(--mint-1),var(--mint-2)) fixed;background-color:var(--mint-2);color:var(--ink);font-family:var(--f);font-size:15px;line-height:1.4;min-height:100vh}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:15px;line-height:1.4}
 button,input,select{font:inherit;color:inherit}
 [hidden]{display:none!important}
-:focus-visible{outline:3px solid var(--lav);outline-offset:2px}
-
-.wrap{max-width:1180px;margin:0 auto;padding:calc(20px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px))}
-.shell{background:var(--paper);border-radius:28px;padding:26px 28px 30px;display:flex;flex-direction:column;gap:26px}
-@media (max-width:640px){.shell{padding:18px 16px 22px;border-radius:22px}}
-
-/* topo */
-.top{display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap}
-.top h1{margin:0;font-size:24px;font-weight:800;letter-spacing:-.01em}
-.tabs{display:flex;gap:26px;margin-top:12px;border-bottom:1.5px solid var(--ink);padding-bottom:0;overflow-x:auto}
-.tabs a{color:var(--muted);text-decoration:none;font-weight:700;font-size:14px;padding:6px 0 10px;white-space:nowrap;border-bottom:3px solid transparent;margin-bottom:-1.5px}
-.tabs a.on{color:var(--ink);border-color:var(--ink)}
-.brandcol{flex:1 1 320px;min-width:0}
-.tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.search{display:flex;align-items:center;gap:8px;border:1.5px solid var(--ink);border-radius:999px;padding:0 16px;height:44px;box-shadow:var(--shadow-sm);background:var(--paper);min-width:220px}
-.search input{border:0;outline:0;background:transparent;font-weight:600;width:100%}
-.search svg{width:18px;height:18px;flex:none}
-.ibtn{width:44px;height:44px;border-radius:50%;border:1.5px solid var(--ink);background:var(--paper);box-shadow:var(--shadow-sm);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative}
-.ibtn svg{width:18px;height:18px}
-.ibtn .badge{position:absolute;top:8px;right:9px;width:8px;height:8px;border-radius:50%;background:var(--bad);border:1.5px solid var(--paper)}
-.ibtn:active,.pill:active,.chip:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
-.avatar{width:44px;height:44px;border-radius:50%;background:var(--lav);border:1.5px solid var(--ink);display:flex;align-items:center;justify-content:center;font-weight:800;cursor:pointer}
-.live{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--ink-2);height:44px}
-.dot{width:9px;height:9px;border-radius:50%;background:var(--ok)}
-.dot.off{background:var(--bad)} .dot.busy{background:var(--warn)}
-@media (prefers-reduced-motion:no-preference){.dot{animation:pulse 2s infinite}@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(47,138,29,.5)}70%{box-shadow:0 0 0 8px rgba(47,138,29,0)}100%{box-shadow:0 0 0 0 rgba(47,138,29,0)}}}
-
-/* seções */
-.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:30px 34px}
-@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
-.sec{display:flex;flex-direction:column;gap:14px;min-width:0}
-.sechead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.sechead h2{margin:0;font-size:21px;font-weight:800;letter-spacing:-.01em;margin-right:auto}
-.sub{font-size:14px;color:var(--ink-2);margin-top:-6px}
-.pill{position:relative;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border:1.5px solid var(--ink);border-radius:10px;background:var(--paper);box-shadow:var(--shadow-sm);font-size:12px;font-weight:700;cursor:pointer}
-.pill select{appearance:none;-webkit-appearance:none;border:0;background:transparent;font-weight:700;font-size:12px;padding-right:14px;cursor:pointer;outline:0}
-.pill::after{content:"";width:6px;height:6px;border-right:2px solid var(--ink);border-bottom:2px solid var(--ink);transform:rotate(45deg);position:absolute;right:12px;top:11px;pointer-events:none}
-.pill.noarrow::after{display:none}
-.legend{display:flex;gap:18px;font-size:13px;font-weight:600;flex-wrap:wrap}
-.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:7px;vertical-align:0}
-
-/* blocos grandes */
-.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
-.tile{border:1.5px solid var(--ink);border-radius:18px;box-shadow:var(--shadow);padding:18px 14px;min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:4px;min-width:0}
-.tile svg{width:20px;height:20px;margin-bottom:6px}
-.tile .t{font-size:13px;font-weight:600}
-.tile .n{font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
-.tile .s{font-size:12px;font-weight:600;opacity:.75}
-.tile.lime{background:var(--lime);color:var(--lime-ink)}
-.tile.lav{background:var(--lav);color:var(--lav-ink)}
-.tile.night{background:var(--night);color:var(--night-ink)}
-.tile.night.alerta .n{color:#ff8a7a}
-@media (max-width:520px){.tiles{gap:10px}.tile{min-height:128px;padding:14px 8px;border-radius:14px}.tile .n{font-size:24px}}
-.chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-.chip{border:0;background:transparent;font-size:12px;font-weight:700;padding:7px 12px;border-radius:999px;cursor:pointer;color:var(--ink-2)}
-.chip.on{background:var(--ink);color:var(--paper);box-shadow:2px 2px 0 var(--lav)}
-
-/* cartão preto */
-.night-card{background:var(--night);color:var(--night-ink);border-radius:22px;box-shadow:6px 6px 0 #c9c9c2;padding:20px 22px 16px;display:grid;grid-template-columns:230px minmax(0,1fr);gap:8px 22px;min-width:0}
-.night-card svg{display:block;width:100%;height:auto}
-.minis svg{width:62px!important}
-.big{font-size:64px;font-weight:800;line-height:.95;color:var(--lime);letter-spacing:-.03em;display:flex;align-items:flex-start;gap:8px}
-.big sup{font-size:13px;font-weight:700;color:var(--night-ink);letter-spacing:0;line-height:1.2;margin-top:2px;white-space:nowrap}
-.big-l{font-size:13px;font-weight:700;margin-top:6px}
-.curve{grid-column:2;grid-row:1 / span 2;min-width:0;align-self:center}
-.minis{grid-column:1}
-.minis{display:flex;gap:24px;align-items:flex-end}
-.mini b{display:block;font-size:22px;font-weight:800;margin-top:6px}
-.mini span{font-size:12px;color:var(--night-muted);font-weight:600;white-space:nowrap}
-@media (max-width:640px){.night-card{grid-template-columns:minmax(0,1fr)}.curve{grid-column:1;grid-row:auto}.minis{grid-column:1}.big{font-size:52px}}
-.night-card svg text{fill:var(--night-muted);font-family:var(--f);font-size:12px;font-weight:600}
-
-/* linhas pílula */
-.rowsgrid{display:grid;grid-template-columns:minmax(0,1.2fr) repeat(2,minmax(0,.6fr));gap:10px 14px;align-items:center}
-.rowsgrid .h{font-size:13px;font-weight:800}
-.rowsgrid .h.r{text-align:right}
-.prow{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px;border:1.5px solid var(--ink);border-radius:12px;padding:12px 16px;box-shadow:var(--shadow-sm);background:var(--paper);font-size:14px;font-weight:600;min-width:0}
-.prow .v{font-variant-numeric:tabular-nums;font-weight:800}
-.prow .lbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.prow-wide{grid-column:1 / -1;display:grid;grid-template-columns:minmax(0,1.2fr) repeat(2,minmax(0,.6fr));align-items:center;border:1.5px solid var(--ink);border-radius:12px;padding:12px 16px;box-shadow:var(--shadow-sm);font-size:14px;font-weight:600}
-.prow-wide .v{text-align:right;font-variant-numeric:tabular-nums;font-weight:800}
-.prow-wide .up{color:var(--ok)} .prow-wide .down{color:var(--bad)}
-.twocol{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px}
-.twocol .h{font-size:13px;font-weight:800}
-@media (max-width:520px){.twocol{grid-template-columns:minmax(0,1fr)}.twocol .h:nth-child(2){display:none}}
-.bar{height:6px;border-radius:3px;background:var(--hair);overflow:hidden;grid-column:1/-1;margin-top:-4px}
-.bar i{display:block;height:100%;border-radius:3px}
-
-/* tabelas */
-.tablewrap{overflow-x:auto;border:1.5px solid var(--ink);border-radius:16px;box-shadow:var(--shadow-sm)}
-table{border-collapse:separate;border-spacing:0;width:100%;font-size:14px;min-width:720px}
-th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--hair);white-space:nowrap}
-tbody tr:last-child td{border-bottom:0}
-th{font-size:12px;font-weight:800;color:var(--ink-2);background:#f6f7f2}
+header.top{position:sticky;top:0;z-index:20;background:var(--ink);color:var(--bg);
+  padding:calc(10px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px));
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+@media (prefers-color-scheme:dark){header.top{background:#061017;color:var(--ink)}}
+.brand{display:flex;flex-direction:column;line-height:1.1;margin-right:auto}
+.brand b{font-size:19px}
+.brand small{font-size:12px;opacity:.75;text-transform:uppercase;letter-spacing:.08em}
+.live{display:flex;align-items:center;gap:8px;font-size:13px}
+.dot{width:9px;height:9px;border-radius:50%;background:#5cc792;box-shadow:0 0 0 0 rgba(92,199,146,.6)}
+.dot.off{background:#ff7b72}
+.dot.busy{background:#f0a840}
+@media (prefers-reduced-motion:no-preference){.dot{animation:pulse 2s infinite}@keyframes pulse{70%{box-shadow:0 0 0 8px rgba(92,199,146,0)}100%{box-shadow:0 0 0 0 rgba(92,199,146,0)}}}
+.hbtn{border:1px solid currentColor;background:transparent;border-radius:6px;padding:5px 10px;font-weight:700;font-size:13px;cursor:pointer}
+main{max-width:1240px;margin:0 auto;padding:16px max(16px,env(safe-area-inset-right,0px)) 40px max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:16px}
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+.filters label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;flex:1 1 150px;max-width:240px}
+.filters input,.filters select{min-height:40px;border:1.5px solid var(--line);border-radius:8px;background:var(--surface);padding:6px 10px;font-size:15px;text-transform:none;letter-spacing:0;font-weight:500;color:var(--ink)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.kpi .n{font-family:var(--f-code);font-size:30px;font-weight:700;line-height:1}
+.kpi .t{font-size:13px;color:var(--muted)}
+.kpi .s{font-size:12px;color:var(--muted)}
+.kpi.warn{border-color:var(--warn);background:var(--warn-bg)}
+.kpi.bad{border-color:var(--bad);background:var(--bad-bg)}
+.kpi.ok{border-color:var(--ok);background:var(--ok-bg)}
+.kpi.bad .n{color:var(--bad)} .kpi.warn .n{color:var(--warn)} .kpi.ok .n{color:var(--ok)}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:820px){.grid2{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.card h2{font-size:16px;margin:0;text-wrap:balance}
+.card .sub{font-size:13px;color:var(--muted);margin-top:-6px}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+svg{display:block;width:100%;height:auto;overflow:visible}
+svg text{font-family:var(--f-ui);fill:var(--muted);font-size:12px}
+svg .val{fill:var(--ink);font-weight:600}
+svg .hit{fill:transparent;cursor:default}
+.tip{position:fixed;z-index:40;pointer-events:none;background:var(--ink);color:var(--bg);border-radius:8px;padding:8px 10px;font-size:13px;line-height:1.35;max-width:260px;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+.tip b{display:block;margin-bottom:2px}
+.tablewrap{overflow-x:auto;margin:0 -4px}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:640px}
+th,td{text-align:left;padding:8px 8px;border-bottom:1px solid var(--grid);white-space:nowrap}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;position:sticky;top:0;background:var(--surface)}
 td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
-td.code{font-weight:800;letter-spacing:.02em}
-tr.sev-bad td:first-child{box-shadow:inset 5px 0 0 var(--bad)}
-tr.sev-warn td:first-child{box-shadow:inset 5px 0 0 var(--warn)}
-.tag{display:inline-block;font-size:11px;font-weight:800;padding:3px 9px;border-radius:999px;border:1.5px solid var(--ink)}
-.tag.pre{background:var(--lav)} .tag.re{background:#ffe2a8} .tag.bad{background:#ffc9c0} .tag.ok{background:var(--lime)} .tag.mut{background:#f0f0ea}
-.empty{color:var(--muted);text-align:center;padding:22px;border:1.5px dashed #b9b9b2;border-radius:14px;font-weight:600}
-.banner{border:1.5px solid var(--ink);border-radius:12px;padding:10px 14px;font-weight:700;background:#ffc9c0;box-shadow:var(--shadow-sm)}
-.foot{font-size:12px;color:var(--ink-2);font-weight:600}
-
-/* barra preta de navegação */
-.dock{position:sticky;bottom:0;z-index:20;margin:18px auto 0;max-width:1180px;padding:0 max(16px,env(safe-area-inset-right,0px)) env(safe-area-inset-bottom,0px) max(16px,env(safe-area-inset-left,0px))}
-.dock-in{background:var(--night);color:var(--night-ink);border-radius:22px 22px 0 0;height:66px;display:flex;align-items:center;gap:6px;padding:0 22px}
-.dock-in b{font-size:19px;font-weight:800;margin-right:auto;white-space:nowrap}
-.dock-in a,.dock-in button{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--night-ink);background:transparent;border:0;cursor:pointer;text-decoration:none}
-.dock-in a.on{background:#2c2c2a}
-.dock-in svg{width:20px;height:20px}
-@media (max-width:520px){.dock-in{padding:0 12px}.dock-in b{font-size:15px}}
-
-/* tooltip */
-.tip{position:fixed;z-index:60;pointer-events:none;background:var(--paper);color:var(--ink);border:1.5px solid var(--ink);box-shadow:var(--shadow-sm);border-radius:10px;padding:8px 10px;font-size:13px;line-height:1.35;max-width:240px}
-.tip b{display:block}
-.hit{fill:transparent}
-
+td.mono{font-family:var(--f-code);font-weight:700}
+tr.sev-bad td:first-child{box-shadow:inset 4px 0 0 var(--bad)}
+tr.sev-warn td:first-child{box-shadow:inset 4px 0 0 var(--warn)}
+.pill{display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:999px;text-transform:uppercase;letter-spacing:.05em}
+.pill.pre{background:#efe3fb;color:#6b2fa3}
+.pill.re{background:var(--warn-bg);color:var(--warn)}
+.pill.bad{background:var(--bad-bg);color:var(--bad)}
+.pill.ok{background:var(--ok-bg);color:var(--ok)}
+.pill.mut{background:var(--grid);color:var(--muted)}
+.empty{color:var(--muted);text-align:center;padding:18px;border:1.5px dashed var(--line);border-radius:10px}
+.note{font-size:13px;color:var(--muted)}
+.banner{border-radius:10px;padding:10px 12px;font-weight:600;background:var(--bad-bg);color:var(--bad);border:1px solid var(--bad)}
 /* login */
-.loginscr{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:16px;background:linear-gradient(160deg,var(--mint-1),var(--mint-2))}
-.loginbox{width:100%;max-width:400px;background:var(--paper);border-radius:24px;padding:26px 22px;display:flex;flex-direction:column;gap:14px}
-.loginbox h2{margin:0;font-size:24px;font-weight:800}
-.loginbox label{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:700}
-.loginbox input{height:48px;border:1.5px solid var(--ink);border-radius:12px;padding:0 14px;font-size:16px;box-shadow:var(--shadow-sm);outline:0}
-.btn{height:50px;border:1.5px solid var(--ink);border-radius:14px;background:var(--lime);color:var(--ink);font-weight:800;font-size:16px;box-shadow:var(--shadow);cursor:pointer}
-.btn:active{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--ink)}
-.alert{border:1.5px solid var(--ink);border-radius:10px;padding:10px 12px;background:#ffc9c0;font-weight:600;font-size:14px}
-.note{font-size:13px;color:var(--ink-2)}
+.loginscr{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:16px}
+.loginbox{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px 18px;display:flex;flex-direction:column;gap:12px}
+.loginbox label{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.loginbox input{min-height:46px;border:1.5px solid var(--line);border-radius:8px;background:var(--bg);padding:8px 12px;font-size:17px;text-transform:none;letter-spacing:0;color:var(--ink)}
+.btn{min-height:48px;border:0;border-radius:8px;padding:10px 16px;font-weight:700;font-size:16px;background:var(--accent);color:var(--accent-ink);cursor:pointer}
+.alert{border-radius:8px;padding:10px 12px;font-size:14px;background:var(--bad-bg);color:var(--bad);border:1px solid var(--bad)}
+input:focus,select:focus,button:focus-visible{outline:3px solid var(--accent);outline-offset:1px}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="shell" id="main" hidden>
-    <div class="top">
-      <div class="brandcol">
-        <h1>Antecâmaras</h1>
-        <nav class="tabs" aria-label="Seções">
-          <a href="#visao" class="on">Visão geral</a><a href="#ativos">Lotes ativos</a><a href="#bipagens">Bipagens</a><a href="#finalizados">Finalizados</a>
-        </nav>
-      </div>
-      <div class="tools">
-        <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="search" id="fBusca" placeholder="Buscar lote" aria-label="Buscar lote ou pré-lote"></label>
-        <button class="ibtn" id="btnAtualizar" title="Atualizar agora" aria-label="Atualizar agora"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 11a8 8 0 10-2.3 5.7M20 5v6h-6"/></svg></button>
-        <a class="ibtn" href="./" title="Abrir app de bipagem" aria-label="Abrir app de bipagem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7V4h3M20 7V4h-3M4 17v3h3M20 17v3h-3M7 12h10"/></svg></a>
-        <button class="ibtn" id="btnAlerta" title="Lotes acima de 24 h" aria-label="Ver lotes acima de 24 horas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 1112 0c0 7 3 8 3 8H3s3-1 3-8M10 20a2 2 0 004 0"/></svg><span class="badge" id="badge" hidden></span></button>
-        <button class="avatar" id="btnSair" title="Sair">?</button>
-      </div>
-    </div>
-    <div class="live"><span class="dot busy" id="dot"></span><span id="liveTxt">Conectando…</span></div>
-    <div class="banner" id="erro" hidden></div>
+<header class="top">
+  <div class="brand"><b>Painel das Antecâmaras</b><small>Monitoramento de lotes · tempo real</small></div>
+  <div class="live" id="live"><span class="dot busy" id="dot"></span><span id="liveTxt">Conectando…</span></div>
+  <button class="hbtn" id="btnAtualizar">Atualizar</button>
+  <button class="hbtn" id="btnSair" hidden>Sair</button>
+</header>
 
-    <div class="grid" id="visao">
-      <!-- movimento do dia -->
-      <section class="sec">
-        <div class="sechead"><h2>Movimento do dia</h2>
-          <label class="pill"><select id="fEmp" aria-label="Empresa"><option value="">Todas as empresas</option><option>Basf</option><option>Dois Marcos</option><option>Terceiro</option></select></label>
-          <label class="pill"><select id="fTipo" aria-label="Tipo"><option value="">Lotes e pré-lotes</option><option>Lote</option><option>Pré-lote</option></select></label>
-        </div>
-        <div class="sub">Lotes bipados nas antecâmaras no dia escolhido</div>
-        <div class="legend"><span><i style="background:var(--lime)"></i>Bipagens</span><span><i style="background:var(--lav)"></i>Reincidentes</span><span><i style="background:var(--ink)"></i>Acima de 24 h</span></div>
-        <div class="tiles" id="tiles"></div>
-        <div class="chips" id="chips" role="group" aria-label="Dia"></div>
-      </section>
-
-      <!-- cartão preto -->
-      <section class="sec">
-        <div class="sechead"><h2>Fora da câmara fria</h2>
-          <label class="pill"><select id="fLocal" aria-label="Local"><option value="">Todos os locais</option></select></label>
-        </div>
-        <div class="sub">Lotes ativos agora e bipagens dos últimos 14 dias</div>
-        <div class="legend"><span><i style="background:var(--lime)"></i>Lote</span><span><i style="background:var(--lav)"></i>Pré-lote</span></div>
-        <div class="night-card">
-          <div><div class="big" id="bigN">0<sup id="bigD"></sup></div><div class="big-l">Ativos agora</div></div>
-          <div class="curve" id="curve"></div>
-          <div class="minis" id="minis"></div>
-        </div>
-      </section>
-
-      <!-- checklist / comparativo -->
-      <section class="sec">
-        <div class="sechead"><h2>Checklist do dia</h2><span class="pill noarrow" id="ckStatus" style="cursor:default">—</span></div>
-        <div class="rowsgrid" id="compara"></div>
-      </section>
-
-      <!-- tempo fora e locais -->
-      <section class="sec">
-        <div class="sechead"><h2>Tempo fora &amp; locais</h2></div>
-        <div class="twocol" id="foraLoc"></div>
-      </section>
-    </div>
-
-    <section class="sec" id="ativos"><div class="sechead"><h2>Lotes ativos fora da câmara fria</h2></div>
-      <div class="sub">Ordenados pelo maior tempo fora · faixa vermelha acima de 48 h, laranja acima de 24 h</div><div id="tbAtivos"></div></section>
-    <section class="sec" id="bipagens"><div class="sechead"><h2>Bipagens do dia</h2></div><div class="sub" id="subBip"></div><div id="tbBip"></div></section>
-    <section class="sec" id="finalizados"><div class="sechead"><h2>Finalizados</h2></div><div class="sub">Lotes finalizados nos checklists dos últimos 7 dias até o dia escolhido</div><div id="tbFin"></div></section>
-    <div class="foot" id="rodape"></div>
+<main id="main" hidden>
+  <div class="banner" id="erro" hidden></div>
+  <div class="filters">
+    <label>Dia<input type="date" id="fDia"></label>
+    <label>Empresa<select id="fEmp"><option value="">Todas</option><option>Basf</option><option>Dois Marcos</option><option>Terceiro</option></select></label>
+    <label>Tipo<select id="fTipo"><option value="">Lotes e pré-lotes</option><option>Lote</option><option>Pré-lote</option></select></label>
+    <label>Local<select id="fLocal"><option value="">Todos</option></select></label>
   </div>
-</div>
 
-<div class="dock" id="dock" hidden><div class="dock-in">
-  <b>Antecâmaras</b>
-  <a href="#visao" class="on" title="Visão geral" aria-label="Visão geral"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 15v-3M12 15V9M16 15v-5"/></svg></a>
-  <a href="#ativos" title="Lotes ativos" aria-label="Lotes ativos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 12l9 4 9-4M3 17l9 4 9-4"/></svg></a>
-  <a href="#bipagens" title="Bipagens do dia" aria-label="Bipagens do dia"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg></a>
-  <a href="#finalizados" title="Finalizados" aria-label="Finalizados"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/></svg></a>
-  <a href="./" title="App de bipagem" aria-label="App de bipagem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7V4h3M20 7V4h-3M4 17v3h3M20 17v3h-3M7 12h10"/></svg></a>
-</div></div>
+  <section class="kpis" id="kpis" aria-label="Números do dia"></section>
+
+  <div class="grid2">
+    <section class="card"><h2>Bipagens por dia</h2><div class="sub">Últimos 14 dias até o dia escolhido</div>
+      <div class="legend"><span><i style="background:var(--s1)"></i>Lote</span><span><i style="background:var(--s2)"></i>Pré-lote</span></div>
+      <div id="chDias"></div></section>
+    <section class="card"><h2>Ativos por tempo fora da câmara fria</h2><div class="sub">Lotes e pré-lotes ainda não finalizados, contados até agora</div>
+      <div id="chFora"></div></section>
+    <section class="card"><h2>Bipagens por usuário</h2><div class="sub" id="subUsr">No dia escolhido</div><div id="chUsr"></div></section>
+    <section class="card"><h2>Ativos por local</h2><div class="sub">Último local em que cada lote ativo foi bipado</div><div id="chLoc"></div></section>
+  </div>
+
+  <section class="card"><h2>Lotes ativos fora da câmara fria</h2><div class="sub">Ordenados pelo maior tempo fora. Faixa vermelha: acima de 48 h · laranja: acima de 24 h</div>
+    <div class="tablewrap" id="tbAtivos"></div></section>
+  <section class="card"><h2>Bipagens do dia</h2><div class="sub" id="subBip"></div><div class="tablewrap" id="tbBip"></div></section>
+  <section class="card"><h2>Finalizados</h2><div class="sub">Lotes finalizados nos checklists dos últimos 7 dias até o dia escolhido</div><div class="tablewrap" id="tbFin"></div></section>
+  <div class="note" id="rodape"></div>
+</main>
 
 <div class="loginscr" id="loginScr">
   <form class="loginbox" id="loginForm">
-    <h2>Antecâmaras</h2>
-    <div class="note">Painel em tempo real. Entre com o mesmo usuário e senha do app de bipagem.</div>
+    <h2 style="margin:0">Painel das Antecâmaras</h2>
+    <div class="note">Entre com o mesmo usuário e senha do app de bipagem.</div>
     <label>Usuário<input type="text" id="lgUsuario" autocomplete="username" autocapitalize="none" spellcheck="false"></label>
     <label>Senha<input type="password" id="lgSenha" autocomplete="current-password"></label>
     <div id="lgMsg"></div>
@@ -259,8 +158,6 @@ const dkey = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}
 const hora = d => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 const br = k => { const [y,m,d] = k.split('-'); return `${d}/${m}/${y}`; };
 const brc = k => br(k).slice(0,5);
-const MES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
-const curto = k => { const [y,m,d] = k.split('-'); return `${+d} ${MES[+m-1]}`; };
 const hoje = () => dkey(new Date());
 const diasEntre = (a,b) => Math.round((new Date(b+'T12:00')-new Date(a+'T12:00'))/86400000);
 function dur(ms){ if(!ms||ms<0) return '0h 00m'; const m=Math.floor(ms/60000), d=Math.floor(m/1440), h=Math.floor((m%1440)/60); return (d?d+'d ':'')+h+'h '+pad(m%60)+'m'; }
@@ -291,7 +188,7 @@ $('#loginForm').onsubmit = async e => {
 $('#btnSair').onclick = () => { try{ sessionStorage.removeItem('painelSessao'); }catch(e){} location.reload(); };
 
 /* ---------- dados ---------- */
-let DADOS = null, SEQ = [], CK = {}, REGS = [], ultimo = 0, carregando = false, DIA = hoje();
+let DADOS = null, SEQ = [], CK = {}, REGS = [], ultimo = 0, carregando = false;
 async function carregar(){
   if(carregando) return; carregando = true;
   $('#dot').className = 'dot busy'; $('#liveTxt').textContent = 'Atualizando…';
@@ -301,22 +198,22 @@ async function carregar(){
     DADOS = j; ultimo = Date.now(); $('#erro').hidden = true;
     processar(); render();
   }catch(err){
-    $('#erro').hidden = false; $('#erro').textContent = 'Não foi possível atualizar agora (' + (err.message||err) + '). Os números mostram a última leitura; nova tentativa em 1 minuto.';
+    $('#erro').hidden = false; $('#erro').textContent = 'Não foi possível atualizar agora (' + (err.message||err) + '). Os números mostram a última leitura e uma nova tentativa ocorre em 1 minuto.';
   }
   carregando = false; status();
 }
 function status(){
   const ok = DADOS && Date.now()-ultimo < ATUALIZA_MS*2.5 && $('#erro').hidden;
   $('#dot').className = 'dot' + (ok ? '' : ' off');
-  $('#liveTxt').textContent = ultimo ? `Ao vivo · atualizado às ${hora(new Date(ultimo))}:${pad(new Date(ultimo).getSeconds())} · a cada 1 min` : 'Sem dados';
+  $('#liveTxt').textContent = ultimo ? `Atualizado às ${hora(new Date(ultimo))}:${pad(new Date(ultimo).getSeconds())} · a cada 1 min` : 'Sem dados';
 }
 function processar(){
   REGS = (DADOS.registros||[]).filter(r=>String(r.situacao||'').indexOf('Excluída')!==0).map(r=>{
     const ts = Number(r.ts) || tsDe(r.data, r.hora), d = new Date(ts), tipo = r.tipo||'Lote', lote = String(r.lote||'').toUpperCase();
     return { id:r.id, ts, data:dkey(d), hora:hora(d), tipo, lote, empresa: tipo==='Pré-lote' ? '' : empresaDoLote(lote), local:r.local||'', usuario:r.aparelho||'', dados:r.dados };
   }).filter(r=>r.ts && r.lote).sort((a,b)=>a.ts-b.ts);
-  // checklist válido de cada dia = último evento (Concluído / Reaberto); a planilha às vezes converte o dia em data
-  const diaOk = (d, ts) => /^\d{4}-\d{2}-\d{2}$/.test(String(d||'')) ? String(d) : dkey(new Date(Number(ts)));
+  // checklist válido de cada dia = último evento (Concluído / Reaberto)
+  const diaOk = (d, ts) => /^\d{4}-\d{2}-\d{2}$/.test(String(d||'')) ? String(d) : dkey(new Date(Number(ts)));   // a planilha às vezes converte em data
   const ult = {}; (DADOS.eventos||[]).filter(e=>Number(e.ts)).forEach(e=>{ const t = Number(e.ts), d = diaOk(e.data, t); if(!ult[d] || t > ult[d].ts) ult[d] = { ...e, data:d, ts:t }; });
   CK = {}; Object.values(ult).forEach(e=>{ if(e.acao==='Concluído') CK[e.data] = e; });
   // sequências: mesmas regras do app
@@ -333,151 +230,142 @@ function processar(){
     }
     if(CK[d]) Object.values(EST).forEach(s=>{ if(!s.final && s.last.data < d) s.final = { data:d, ts:CK[d].ts, por:CK[d].aparelho }; });
   }
+  // lista de locais para o filtro
   const locs = [...new Set(REGS.map(r=>r.local).filter(Boolean))].sort();
   const sel = $('#fLocal'), atual = sel.value;
-  sel.innerHTML = '<option value="">Todos os locais</option>' + locs.map(l=>`<option ${l===atual?'selected':''}>${esc(l)}</option>`).join('');
+  sel.innerHTML = '<option value="">Todos</option>' + locs.map(l=>`<option ${l===atual?'selected':''}>${esc(l)}</option>`).join('');
 }
 
 /* ---------- filtros ---------- */
-const F = () => ({ dia:DIA, emp:$('#fEmp').value, tipo:$('#fTipo').value, local:$('#fLocal').value, busca:$('#fBusca').value.trim().toUpperCase() });
-const passaR = (r,f) => (!f.emp || r.empresa===f.emp) && (!f.tipo || r.tipo===f.tipo) && (!f.local || r.local===f.local) && (!f.busca || r.lote.includes(f.busca));
-const passaS = (s,f) => (!f.emp || s.empresa===f.emp) && (!f.tipo || s.tipo===f.tipo) && (!f.local || s.last.local===f.local) && (!f.busca || s.lote.includes(f.busca));
-['#fEmp','#fTipo','#fLocal'].forEach(id=>$(id).addEventListener('change', render));
-$('#fBusca').addEventListener('input', ()=>{ clearTimeout(window._bt); window._bt = setTimeout(render, 200); });
+const F = () => ({ dia:$('#fDia').value || hoje(), emp:$('#fEmp').value, tipo:$('#fTipo').value, local:$('#fLocal').value });
+const passa = (x, f, comLocal=true) => (!f.emp || x.empresa===f.emp) && (!f.tipo || x.tipo===f.tipo) && (!comLocal || !f.local || (x.local||x.last&&x.last.local)===f.local);
+['#fDia','#fEmp','#fTipo','#fLocal'].forEach(id=>$(id).addEventListener('change', render));
 
 /* ---------- desenho ---------- */
-const ICON = {
-  in:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M17 7L7 17M7 9v8h8"/></svg>',
-  re:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 12a8 8 0 0113.7-5.6M20 4v5h-5M20 12a8 8 0 01-13.7 5.6M4 20v-5h5"/></svg>',
-  al:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 3l9.5 17h-19L12 3zM12 10v4M12 17.5v.5"/></svg>'
-};
 function render(){
   if(!DADOS) return;
-  const f = F(), agora = Date.now(), H = h => h*3600000;
-  const bipDia = REGS.filter(r=>r.data===f.dia && passaR(r,f));
-  const ativos = SEQ.filter(s=>!s.final && passaS(s,f));
+  const f = F(), agora = Date.now();
+  const bipDia = REGS.filter(r=>r.data===f.dia && passa(r,f));
+  const ativos = SEQ.filter(s=>!s.final && passa(s,f,false) && (!f.local || s.last.local===f.local));
   const reinc = new Set(bipDia.filter(r=>r.reincidente).map(r=>chave(r.tipo,r.lote)));
-  const acima24 = ativos.filter(s=>agora-s.start >= H(24));
-
-  // blocos
-  $('#tiles').innerHTML = `
-    <div class="tile lime">${ICON.in}<div class="t">Bipagens</div><div class="n">${bipDia.length}</div><div class="s">${new Set(bipDia.map(r=>chave(r.tipo,r.lote))).size} lote(s)</div></div>
-    <div class="tile lav">${ICON.re}<div class="t">Reincidentes</div><div class="n">${reinc.size}</div><div class="s">após o 1º dia</div></div>
-    <div class="tile night ${acima24.length?'alerta':''}">${ICON.al}<div class="t">Acima de 24 h</div><div class="n">${acima24.length}</div><div class="s">ativos agora</div></div>`;
-  $('#badge').hidden = !acima24.length;
-
-  // dias (chips): últimos 7
-  let chips=''; for(let i=6;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); const k=dkey(d);
-    chips += `<button class="chip ${k===f.dia?'on':''}" data-dia="${k}">${i===0?'Hoje':i===1?'Ontem':curto(k)}</button>`; }
-  $('#chips').innerHTML = chips;
-
-  // cartão preto
-  const novosHoje = SEQ.filter(s=>!s.final && s.startData===hoje() && passaS(s,f)).length;
-  $('#bigN').innerHTML = `${ativos.length}<sup>${novosHoje?'+'+novosHoje+' hoje':''}</sup>`;
-  const dias14 = []; for(let i=13;i>=0;i--){ const d=new Date(f.dia+'T12:00'); d.setDate(d.getDate()-i); dias14.push(dkey(d)); }
-  const serie = dias14.map(d=>{ const rs = REGS.filter(r=>r.data===d && passaR(r,f)); return { d, n:rs.length, lote:rs.filter(r=>r.tipo==='Lote').length, pre:rs.filter(r=>r.tipo==='Pré-lote').length }; });
-  $('#curve').innerHTML = curva(serie, larg('#curve'));
-  const totL = serie.reduce((a,x)=>a+x.lote,0), totP = serie.reduce((a,x)=>a+x.pre,0);
-  $('#minis').innerHTML = `<div class="mini">${barrinhas(serie.map(x=>x.lote),'var(--lime)')}<b>${totL}</b><span>Lotes · 14 dias</span></div>
-    <div class="mini">${barrinhas(serie.map(x=>x.pre),'var(--lav)')}<b>${totP}</b><span>Pré-lotes · 14 dias</span></div>`;
-
-  // checklist: comparativo ontem x dia escolhido
-  const ant = new Date(f.dia+'T12:00'); ant.setDate(ant.getDate()-1); const fa = dkey(ant);
-  const conta = d => { const rs = REGS.filter(r=>r.data===d && passaR(r,f));
-    return { bip:rs.length, rei:new Set(rs.filter(r=>r.reincidente).map(r=>chave(r.tipo,r.lote))).size,
-      nov:SEQ.filter(s=>s.startData===d && passaS(s,f)).length, fin:SEQ.filter(s=>s.final && s.final.data===d && passaS(s,f)).length }; };
-  const A = conta(fa), B = conta(f.dia);
-  const linha = (n,a,b) => `<div class="prow-wide"><span>${n}</span><span class="v">${a}</span><span class="v">${b}</span></div>`;
-  $('#compara').innerHTML = `<div class="h">Indicador</div><div class="h r">${f.dia===hoje()?'Ontem':curto(fa)}</div><div class="h r">${f.dia===hoje()?'Hoje':curto(f.dia)}</div>`+
-    linha('Bipagens', A.bip, B.bip) + linha('Novas entradas', A.nov, B.nov) + linha('Reincidentes', A.rei, B.rei) + linha('Finalizados no checklist', A.fin, B.fin);
+  const acima24 = ativos.filter(s=>agora-s.start >= 86400000).length;
+  const fin = SEQ.filter(s=>s.final && s.final.data===f.dia && passa(s,f,false));
   const ck = CK[f.dia];
-  const pend = SEQ.filter(s=>!s.final && s.last.data < f.dia && s.startData <= f.dia && passaS(s,f)).length;
-  $('#ckStatus').innerHTML = ck ? `✓ Concluído ${hora(new Date(Number(ck.ts)))}${ck.aparelho?' · '+esc(ck.aparelho.split(' ')[0]):''}` : (f.dia===hoje() ? `Pendente · faltam ${pend}` : 'Não concluído');
-  $('#ckStatus').style.background = ck ? 'var(--lime)' : (pend ? '#ffe2a8' : 'var(--paper)');
+  const pend = SEQ.filter(s=>!s.final && s.last.data < f.dia && s.startData <= f.dia && passa(s,f,false)).length;
+  const tile = (n,t,s,cls='') => `<div class="kpi ${cls}"><div class="n">${n}</div><div class="t">${t}</div>${s?`<div class="s">${s}</div>`:''}</div>`;
+  $('#kpis').innerHTML =
+    tile(bipDia.length, 'Bipagens no dia', br(f.dia)) +
+    tile(new Set(bipDia.map(r=>chave(r.tipo,r.lote))).size, 'Lotes e pré-lotes no dia', `${new Set(bipDia.filter(r=>r.tipo==='Pré-lote').map(r=>r.lote)).size} pré-lote(s)`) +
+    tile(ativos.length, 'Ativos fora da câmara', 'agora') +
+    tile(reinc.size, 'Reincidentes no dia', 'bipados de novo após o 1º dia', reinc.size?'warn':'') +
+    tile(acima24, 'Acima de 24 h fora', '▲ atenção', acima24?'bad':'') +
+    (ck ? tile('✓', 'Checklist concluído', `${hora(new Date(Number(ck.ts)))}${ck.aparelho?' · '+esc(ck.aparelho):''} · ${fin.length} finalizado(s)`, 'ok')
+        : tile(f.dia===hoje()?pend:'—', 'Checklist pendente', f.dia===hoje()?'ativos ainda não encontrados hoje':'checklist não concluído neste dia', pend?'warn':''));
 
-  // tempo fora & locais
-  const faixas = [['Até 24 h',0,24],['24 a 48 h',24,48],['48 a 72 h',48,72],['Mais de 72 h',72,1e9]].map(([n,a,b])=>({ n, v:ativos.filter(s=>{ const h=(agora-s.start)/3600000; return h>=a && h<b; }).length }));
-  const cores = ['var(--lime)','#ffd36b','#ff9f6b','var(--bad)'];
-  const porLocal = (()=>{ const m=new Map(); ativos.forEach(s=>{ const k=s.last.local||'(sem local)'; m.set(k,(m.get(k)||0)+1); }); const a=[...m].sort((x,y)=>y[1]-x[1]); const top=a.slice(0,3); const resto=a.slice(3).reduce((t,x)=>t+x[1],0); if(resto) top.push(['Outros locais',resto]); while(top.length<4) top.push(['—',0]); return top; })();
-  const maxF = Math.max(1,...faixas.map(x=>x.v)), maxL = Math.max(1,...porLocal.map(x=>x[1]));
-  let fl = `<div class="h">Ativos por tempo fora</div><div class="h">Ativos por último local</div>`;
-  for(let i=0;i<4;i++){
-    fl += `<div class="prow" data-tip="<b>${faixas[i].n}</b>${faixas[i].v} lote(s) ativo(s)"><span class="lbl">${faixas[i].n}</span><span class="v">${faixas[i].v}</span><div class="bar"><i style="width:${faixas[i].v/maxF*100}%;background:${cores[i]}"></i></div></div>`;
-    fl += `<div class="prow" data-tip="<b>${esc(porLocal[i][0])}</b>${porLocal[i][1]} lote(s) ativo(s)"><span class="lbl">${esc(porLocal[i][0].length>26 ? '…'+porLocal[i][0].slice(-25) : porLocal[i][0])}</span><span class="v">${porLocal[i][1]}</span><div class="bar"><i style="width:${porLocal[i][1]/maxL*100}%;background:var(--lav)"></i></div></div>`;
-  }
-  $('#foraLoc').innerHTML = fl;
+  // gráfico 1: bipagens por dia (barras empilhadas Lote / Pré-lote)
+  const dias = []; for(let i=13;i>=0;i--){ const d = new Date(f.dia+'T12:00'); d.setDate(d.getDate()-i); dias.push(dkey(d)); }
+  const porDia = dias.map(d=>{ const rs = REGS.filter(r=>r.data===d && passa(r,f)); return { d, lote:rs.filter(r=>r.tipo==='Lote').length, pre:rs.filter(r=>r.tipo==='Pré-lote').length }; });
+  $('#chDias').innerHTML = barrasEmpilhadas(porDia, larg('#chDias'));
+
+  // gráfico 2: ativos por faixa de tempo fora
+  const faixas = [['Até 24 h',0,24,'--q1'],['24–48 h',24,48,'--q2'],['48–72 h',48,72,'--q3'],['Mais de 72 h',72,1e9,'--q4']]
+    .map(([n,a,b,c])=>({ n, c, v: ativos.filter(s=>{ const h=(agora-s.start)/3600000; return h>=a && h<b; }).length }));
+  $('#chFora').innerHTML = barrasVerticais(faixas, larg('#chFora'));
+
+  // gráfico 3 e 4: barras horizontais
+  const cont = (arr, fn) => { const m = new Map(); arr.forEach(x=>{ const k = fn(x)||'(sem nome)'; m.set(k,(m.get(k)||0)+1); }); return [...m].map(([n,v])=>({n,v})).sort((a,b)=>b.v-a.v); };
+  $('#subUsr').textContent = 'No dia ' + br(f.dia);
+  $('#chUsr').innerHTML = barrasHorizontais(cont(bipDia, r=>r.usuario), 'bipagem(ns)', larg('#chUsr'));
+  $('#chLoc').innerHTML = barrasHorizontais(cont(ativos, s=>s.last.local), 'lote(s) ativo(s)', larg('#chLoc'));
 
   // tabelas
-  const tipoTag = t => t==='Pré-lote' ? '<span class="tag pre">Pré-lote</span>' : 'Lote';
-  const ord = ativos.slice().sort((a,b)=>a.start-b.start);
-  $('#tbAtivos').innerHTML = ord.length ? `<div class="tablewrap"><table><thead><tr><th>Tipo</th><th>Lote / pré-lote</th><th>Empresa</th><th>Início</th><th class="num">Dia</th><th>Último local</th><th>Última bipagem</th><th>Usuário</th><th class="num">Tempo fora</th></tr></thead><tbody>${
-    ord.map(s=>{ const h=(agora-s.start)/3600000; return `<tr class="${h>=48?'sev-bad':h>=24?'sev-warn':''}"><td>${tipoTag(s.tipo)}</td><td class="code">${esc(s.lote)}</td><td>${esc(s.empresa||'—')}</td><td>${brc(s.startData)} ${hora(new Date(s.start))}</td><td class="num">${diasEntre(s.startData,hoje())+1}</td><td>${esc(s.last.local)}</td><td>${brc(s.last.data)} ${s.last.hora}</td><td>${esc(s.last.usuario)}</td><td class="num"><b>${dur(agora-s.start)}</b></td></tr>`; }).join('')
-  }</tbody></table></div>` : '<div class="empty">Nenhum lote ativo fora da câmara fria com os filtros escolhidos.</div>';
+  const ativosOrd = ativos.slice().sort((a,b)=>a.start-b.start);
+  $('#tbAtivos').innerHTML = ativosOrd.length ? `<table><thead><tr><th>Tipo</th><th>Lote / pré-lote</th><th>Empresa</th><th>Início</th><th class="num">Dia</th><th>Último local</th><th>Última bipagem</th><th>Usuário</th><th class="num">Tempo fora</th></tr></thead><tbody>${
+    ativosOrd.map(s=>{ const h=(agora-s.start)/3600000; return `<tr class="${h>=48?'sev-bad':h>=24?'sev-warn':''}"><td>${s.tipo==='Pré-lote'?'<span class="pill pre">Pré-lote</span>':'Lote'}</td><td class="mono">${esc(s.lote)}</td><td>${esc(s.empresa||'—')}</td><td>${brc(s.startData)} ${hora(new Date(s.start))}</td><td class="num">${diasEntre(s.startData,hoje())+1}</td><td>${esc(s.last.local)}</td><td>${brc(s.last.data)} ${s.last.hora}</td><td>${esc(s.last.usuario)}</td><td class="num"><b>${dur(agora-s.start)}</b></td></tr>`; }).join('')
+  }</tbody></table>` : '<div class="empty">Nenhum lote ativo fora da câmara fria com os filtros escolhidos.</div>';
+
   $('#subBip').textContent = `${br(f.dia)} · ${bipDia.length} bipagem(ns), da mais recente para a mais antiga`;
-  $('#tbBip').innerHTML = bipDia.length ? `<div class="tablewrap"><table><thead><tr><th>Hora</th><th>Tipo</th><th>Lote / pré-lote</th><th>Empresa</th><th>Local</th><th>Usuário</th><th>Situação</th><th class="num">Tempo fora</th></tr></thead><tbody>${
-    bipDia.slice().reverse().map(r=>`<tr><td class="num">${r.hora}</td><td>${tipoTag(r.tipo)}</td><td class="code">${esc(r.lote)}</td><td>${esc(r.empresa||'—')}</td><td>${esc(r.local)}</td><td>${esc(r.usuario)}</td><td>${
-      r.reincidente ? `<span class="tag ${r.fora>=H(24)?'bad':'re'}">Reincidente · dia ${r.diaSeq}</span>` : r.posDia>1 ? `<span class="tag mut">Mesmo dia · ${r.posDia}ª posição</span>` : '<span class="tag ok">1ª bipagem</span>'
+  $('#tbBip').innerHTML = bipDia.length ? `<table><thead><tr><th>Hora</th><th>Tipo</th><th>Lote / pré-lote</th><th>Empresa</th><th>Local</th><th>Usuário</th><th>Situação</th><th class="num">Tempo fora</th></tr></thead><tbody>${
+    bipDia.slice().reverse().map(r=>`<tr><td class="num">${r.hora}</td><td>${r.tipo==='Pré-lote'?'<span class="pill pre">Pré-lote</span>':'Lote'}</td><td class="mono">${esc(r.lote)}</td><td>${esc(r.empresa||'—')}</td><td>${esc(r.local)}</td><td>${esc(r.usuario)}</td><td>${
+      r.reincidente ? `<span class="pill ${r.fora>=86400000?'bad':'re'}">Reincidente · dia ${r.diaSeq}</span>` : r.posDia>1 ? `<span class="pill mut">Mesmo dia · ${r.posDia}ª posição</span>` : '<span class="pill ok">1ª bipagem</span>'
     }</td><td class="num">${r.reincidente?dur(r.fora):'—'}</td></tr>`).join('')
-  }</tbody></table></div>` : '<div class="empty">Nenhuma bipagem neste dia com os filtros escolhidos.</div>';
+  }</tbody></table>` : '<div class="empty">Nenhuma bipagem neste dia com os filtros escolhidos.</div>';
+
   const de = new Date(f.dia+'T12:00'); de.setDate(de.getDate()-6); const deK = dkey(de);
-  const fins = SEQ.filter(s=>s.final && s.final.data>=deK && s.final.data<=f.dia && passaS(s,f)).sort((a,b)=>b.final.ts-a.final.ts);
-  $('#tbFin').innerHTML = fins.length ? `<div class="tablewrap"><table><thead><tr><th>Finalizado em</th><th>Tipo</th><th>Lote / pré-lote</th><th>Empresa</th><th>Primeira bipagem</th><th>Última bipagem</th><th>Último local</th><th class="num">Tempo fora</th></tr></thead><tbody>${
-    fins.map(s=>`<tr><td>${br(s.final.data)}</td><td>${tipoTag(s.tipo)}</td><td class="code">${esc(s.lote)}</td><td>${esc(s.empresa||'—')}</td><td>${brc(s.startData)} ${hora(new Date(s.start))}</td><td>${brc(s.last.data)} ${s.last.hora}</td><td>${esc(s.last.local)}</td><td class="num">${dur(s.last.ts-s.start)}</td></tr>`).join('')
-  }</tbody></table></div>` : '<div class="empty">Nenhum lote finalizado nesse período.</div>';
+  const fins = SEQ.filter(s=>s.final && s.final.data>=deK && s.final.data<=f.dia && passa(s,f,false) && (!f.local || s.last.local===f.local)).sort((a,b)=>b.final.ts-a.final.ts);
+  $('#tbFin').innerHTML = fins.length ? `<table><thead><tr><th>Finalizado em</th><th>Tipo</th><th>Lote / pré-lote</th><th>Empresa</th><th>Primeira bipagem</th><th>Última bipagem</th><th>Último local</th><th class="num">Tempo fora</th></tr></thead><tbody>${
+    fins.map(s=>`<tr><td>${br(s.final.data)}</td><td>${s.tipo==='Pré-lote'?'<span class="pill pre">Pré-lote</span>':'Lote'}</td><td class="mono">${esc(s.lote)}</td><td>${esc(s.empresa||'—')}</td><td>${brc(s.startData)} ${hora(new Date(s.start))}</td><td>${brc(s.last.data)} ${s.last.hora}</td><td>${esc(s.last.local)}</td><td class="num">${dur(s.last.ts-s.start)}</td></tr>`).join('')
+  }</tbody></table>` : '<div class="empty">Nenhum lote finalizado nesse período.</div>';
+
   $('#rodape').textContent = `Fonte: Planilha "Monitoramento Antecâmara" · ${REGS.length} bipagens válidas nos últimos ${DIAS_HISTORICO} dias · ${(DADOS.locais||[]).filter(l=>l.situacao!=='Removido').length} locais cadastrados.`;
   ligarTooltips();
 }
-$('#chips').addEventListener('click', e=>{ const b = e.target.closest('[data-dia]'); if(b){ DIA = b.dataset.dia; render(); } });
-$('#btnAlerta').onclick = () => document.getElementById('ativos').scrollIntoView({ behavior:'smooth' });
 
-/* ---------- gráficos ---------- */
-const larg = id => Math.max(260, Math.round(($(id) && $(id).clientWidth) || 420));
-function curva(serie, W){
-  const H = 150, T = 30, B = 26, L = 6, R = 18, n = serie.length, max = Math.max(1, ...serie.map(s=>s.n));
-  const x = i => L + (W-L-R)*i/(n-1), y = v => T + (H-T-B) * (1 - v/max);
-  const pts = serie.map((s,i)=>[x(i), y(s.n)]);
-  let d = `M${pts[0][0]},${pts[0][1]}`;
-  for(let i=0;i<n-1;i++){ const p0=pts[Math.max(0,i-1)], p1=pts[i], p2=pts[i+1], p3=pts[Math.min(n-1,i+2)];
-    const c1=[p1[0]+(p2[0]-p0[0])/6, p1[1]+(p2[1]-p0[1])/6], c2=[p2[0]-(p3[0]-p1[0])/6, p2[1]-(p3[1]-p1[1])/6];
-    d += ` C${c1[0].toFixed(1)},${Math.min(H-B,c1[1]).toFixed(1)} ${c2[0].toFixed(1)},${Math.min(H-B,c2[1]).toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`; }
-  const last = pts[n-1], imax = serie.reduce((m,s,i)=>s.n>serie[m].n?i:m,0);
-  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Bipagens por dia nos últimos 14 dias">
-    <defs><linearGradient id="gl" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#a6e86e" stop-opacity=".22"/><stop offset="1" stop-color="#a6e86e" stop-opacity="0"/></linearGradient></defs>
-    <path d="${d} L${last[0]},${H-B} L${pts[0][0]},${H-B} Z" fill="url(#gl)"/>
-    <path d="${d}" fill="none" stroke="#a6e86e" stroke-width="2.5" stroke-linecap="round"/>
-    <text x="${pts[imax][0]}" y="${pts[imax][1]-10}" text-anchor="middle" style="fill:#f2f2ee;font-size:13px;font-weight:800">${serie[imax].n}</text>
-    <circle cx="${last[0]}" cy="${last[1]}" r="11" fill="#a6e86e" opacity=".25"/><circle cx="${last[0]}" cy="${last[1]}" r="6.5" fill="#a6e86e" stroke="#0b0b0b" stroke-width="2.5"/>`;
-  [0, Math.round((n-1)/3), Math.round(2*(n-1)/3), n-1].forEach(i=>{ s += `<text x="${pts[i][0]}" y="${H-6}" text-anchor="${i===0?'start':i===n-1?'end':'middle'}">${curto(serie[i].d)}</text>`; });
-  serie.forEach((p,i)=>{ const w=(W-L-R)/(n-1); s += `<rect class="hit" x="${pts[i][0]-w/2}" y="0" width="${w}" height="${H}" data-tip="<b>${br(p.d)}</b>${p.n} bipagem(ns)<br>Lote: ${p.lote} · Pré-lote: ${p.pre}"/>`; });
+/* ---------- gráficos (SVG simples, escala única, valores reais) ---------- */
+const niceMax = v => { if(v<=4) return 4; const p = Math.pow(10, Math.floor(Math.log10(v))); let m = 10*p; for(const k of [1,2,2.5,5,10]) if(k*p >= v){ m = k*p; break; } return Math.ceil(m/4)*4; };   // 4 divisões inteiras
+const rr = (x,y,w,h,r) => { r = Math.min(r, w/2, h); return `M${x},${y+h}V${y+r}Q${x},${y} ${x+r},${y}H${x+w-r}Q${x+w},${y} ${x+w},${y+r}V${y+h}Z`; };
+function eixoY(max, W, H, L, T){
+  let s=''; for(let i=0;i<=4;i++){ const v=max*i/4, y=T+H-H*i/4;
+    s += `<line x1="${L}" x2="${W}" y1="${y}" y2="${y}" stroke="var(--${i?'grid':'line'})" stroke-width="1"/><text x="${L-6}" y="${y+4}" text-anchor="end">${Math.round(v)}</text>`; }
+  return s;
+}
+const larg = id => Math.max(300, Math.round(($(id) && $(id).clientWidth) || 560));
+function barrasEmpilhadas(dados, W){
+  const H=190, L=34, T=12, B=26, n=dados.length, total=dados.map(d=>d.lote+d.pre);
+  const max = niceMax(Math.max(1,...total)), pw=(W-L)/n, bw=Math.min(24, pw*0.62);
+  let s = `<svg viewBox="0 0 ${W} ${H+T+B}" role="img" aria-label="Bipagens por dia nos últimos 14 dias">` + eixoY(max,W,H,L,T);
+  dados.forEach((d,i)=>{
+    const x = L + pw*i + (pw-bw)/2, hl = H*d.lote/max, hp = H*d.pre/max, base = T+H;
+    if(d.lote) s += `<path d="${d.pre? `M${x},${base}V${base-hl}H${x+bw}V${base}Z` : rr(x,base-hl,bw,hl,4)}" fill="var(--s1)"/>`;
+    if(d.pre) s += `<path d="${rr(x,base-hl-hp-(d.lote?2:0),bw,hp,4)}" fill="var(--s2)"/>`;
+    const passo = W < 480 ? 3 : 2;
+    const lbl = ((n-1-i)%passo===0) ? `<text x="${x+bw/2}" y="${T+H+17}" text-anchor="middle">${brc(d.d)}</text>` : '';
+    s += lbl + `<rect class="hit" x="${L+pw*i}" y="${T}" width="${pw}" height="${H}" data-tip="<b>${br(d.d)}</b>Lote: ${d.lote}<br>Pré-lote: ${d.pre}<br>Total: ${d.lote+d.pre}"/>`;
+    if(i===n-1 && total[i]) s += `<text class="val" x="${x+bw/2}" y="${T+H-H*total[i]/max-6}" text-anchor="middle">${total[i]}</text>`;
+  });
   return s + '</svg>';
 }
-function barrinhas(vals, cor){
-  const W=62, H=26, n=vals.length, bw=2.6, gap=(W-n*bw)/(n-1), max=Math.max(1,...vals);
-  return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" aria-hidden="true">${vals.map((v,i)=>{ const h=Math.max(2,H*v/max); return `<rect x="${(i*(bw+gap)).toFixed(1)}" y="${H-h}" width="${bw}" height="${h}" rx="1.3" fill="${cor}" opacity="${v?1:.35}"/>`; }).join('')}</svg>`;
+function barrasVerticais(dados, W){
+  const H=190, L=34, T=16, B=26, n=dados.length, max=niceMax(Math.max(1,...dados.map(d=>d.v))), pw=(W-L)/n, bw=Math.min(70,pw*0.55);
+  let s = `<svg viewBox="0 0 ${W} ${H+T+B}" role="img" aria-label="Ativos por tempo fora">` + eixoY(max,W,H,L,T);
+  dados.forEach((d,i)=>{ const x=L+pw*i+(pw-bw)/2, h=H*d.v/max;
+    if(d.v) s += `<path d="${rr(x,T+H-h,bw,h,4)}" fill="var(${d.c})"/>`;
+    s += `<text class="val" x="${x+bw/2}" y="${T+H-h-6}" text-anchor="middle">${d.v}</text><text x="${x+bw/2}" y="${T+H+17}" text-anchor="middle">${d.n}</text>
+      <rect class="hit" x="${L+pw*i}" y="${T}" width="${pw}" height="${H}" data-tip="<b>${d.n} fora da câmara</b>${d.v} lote(s)/pré-lote(s)"/>`; });
+  return s + '</svg>';
+}
+function barrasHorizontais(dados, unid, W){
+  if(!dados.length) return '<div class="empty">Sem dados com os filtros escolhidos.</div>';
+  const top = dados.slice(0,8), resto = dados.slice(8).reduce((a,d)=>a+d.v,0); if(resto) top.push({ n:'Outros', v:resto });
+  const rh=30, L=Math.min(260, Math.round(W*0.42)), R=40, maxc=Math.floor((L-10)/6.6), max=Math.max(...top.map(d=>d.v)), H=top.length*rh;
+  let s = `<svg viewBox="0 0 ${W} ${H+4}" role="img" aria-label="Contagem por categoria">`;
+  top.forEach((d,i)=>{ const y=i*rh+6, w=(W-L-R)*d.v/max, nome = d.n.length>maxc ? '…'+d.n.slice(-(maxc-1)) : d.n;   // corta o início (o fim do nome do local é o que diferencia)
+    s += `<text x="${L-8}" y="${y+13}" text-anchor="end" style="fill:var(--ink)">${esc(nome)}</text>
+      <path d="M${L},${y}H${L+Math.max(w,2)-4}Q${L+Math.max(w,2)},${y} ${L+Math.max(w,2)},${y+4}V${y+14}Q${L+Math.max(w,2)},${y+18} ${L+Math.max(w,2)-4},${y+18}H${L}Z" fill="var(--s1)"/>
+      <text class="val" x="${L+w+6}" y="${y+13}">${d.v}</text>
+      <rect class="hit" x="0" y="${i*rh}" width="${W}" height="${rh}" data-tip="<b>${esc(d.n)}</b>${d.v} ${unid}"/>`; });
+  return s + `<line x1="${L}" x2="${L}" y1="0" y2="${H}" stroke="var(--line)"/></svg>`;
 }
 function ligarTooltips(){
   const tip = $('#tip');
-  document.querySelectorAll('.hit,[data-tip]').forEach(el=>{
+  document.querySelectorAll('.hit').forEach(el=>{
     const mostrar = e => { tip.innerHTML = el.dataset.tip; tip.hidden = false; const p = e.touches ? e.touches[0] : e;
-      tip.style.left = Math.min(p.clientX + 14, innerWidth - tip.offsetWidth - 8)+'px'; tip.style.top = Math.max(8, p.clientY - tip.offsetHeight - 12)+'px'; };
-    el.onmousemove = mostrar; el.ontouchstart = mostrar; el.onmouseleave = () => tip.hidden = true;
+      const x = Math.min(p.clientX + 14, innerWidth - tip.offsetWidth - 8), y = Math.max(8, p.clientY - tip.offsetHeight - 12); tip.style.left = x+'px'; tip.style.top = y+'px';
+      el.parentNode.querySelectorAll('.hit').forEach(h=>h.style.fill='transparent'); el.style.fill='rgba(127,127,127,.08)'; };
+    el.onmousemove = mostrar; el.ontouchstart = mostrar;
+    el.onmouseleave = () => { tip.hidden = true; el.style.fill='transparent'; };
   });
 }
-document.addEventListener('touchstart', e=>{ if(!e.target.closest || !e.target.closest('.hit,[data-tip]')) $('#tip').hidden = true; }, { passive:true });
-
-/* navegação: marca a aba/ícone da seção visível */
-const secoes = ['visao','ativos','bipagens','finalizados'];
-function marcar(id){ document.querySelectorAll('.tabs a, .dock-in a[href^="#"]').forEach(a=>a.classList.toggle('on', a.getAttribute('href')==='#'+id)); }
-if('IntersectionObserver' in window){ const io = new IntersectionObserver(es=>{ es.forEach(e=>{ if(e.isIntersecting) marcar(e.target.id); }); }, { rootMargin:'-40% 0px -55% 0px' }); secoes.forEach(id=>io.observe(document.getElementById(id))); }
+document.addEventListener('touchstart', e=>{ if(!e.target.classList || !e.target.classList.contains('hit')) $('#tip').hidden = true; }, { passive:true });
 
 /* ---------- início ---------- */
+$('#fDia').value = hoje();
+let rz; addEventListener('resize', ()=>{ clearTimeout(rz); rz = setTimeout(render, 200); });
 $('#btnAtualizar').onclick = carregar;
-let timer = null, rz;
-addEventListener('resize', ()=>{ clearTimeout(rz); rz = setTimeout(render, 200); });
+let timer = null;
 function iniciar(){
-  $('#loginScr').hidden = true; $('#main').hidden = false; $('#dock').hidden = false;
-  const ini = SESSAO.nome.split(' ').filter(Boolean); $('#btnSair').textContent = (ini[0][0] + (ini[1]?ini[1][0]:'')).toUpperCase();
-  $('#btnSair').title = SESSAO.nome + ' · tocar para sair';
+  $('#loginScr').hidden = true; $('#main').hidden = false; $('#btnSair').hidden = false;
+  $('#btnSair').textContent = 'Sair (' + SESSAO.nome.split(' ')[0] + ')';
   carregar(); clearInterval(timer); timer = setInterval(()=>{ if(!document.hidden) carregar(); else status(); }, ATUALIZA_MS);
   document.addEventListener('visibilitychange', ()=>{ if(!document.hidden && Date.now()-ultimo > ATUALIZA_MS) carregar(); });
 }
