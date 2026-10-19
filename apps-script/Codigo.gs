@@ -1,7 +1,7 @@
 /**
- * Monitor de Antecâmara — banco de dados central na Planilha Google (versão 3, vários aparelhos)
+ * Monitor de Antecâmara — banco de dados central na Planilha Google (versão 4: vários aparelhos, usuários e duplicadas offline)
  * Cole em Extensões → Apps Script, salve e implante como "App da Web".
- * Abas: Bipagens · Checklists · Finalizados · Locais. Fotos dos pré-lotes vão para uma pasta no Google Drive.
+ * Abas: Bipagens · Checklists · Finalizados · Locais · Usuários · Log de usuários · Repetidas offline. Fotos dos pré-lotes vão para uma pasta no Google Drive.
  * Cada celular envia o que fez (POST) e baixa o que os outros fizeram (GET ?acao=dados).
  */
 const ABA = 'Bipagens';
@@ -14,6 +14,10 @@ const CABECALHO = [
 const CAB_CHECK = ['Data', 'Hora', 'Ação', 'Aparelho', 'Reincidentes conferidos', 'Finalizados', 'Lotes finalizados', 'Recebido em', 'ID', 'TS', 'Dia'];
 const CAB_LOCAIS = ['ID', 'Armazém / antecâmara', 'Posição', 'Situação', 'Atualizado em'];
 const CAB_FIN = ['Finalizado em', 'Tipo', 'Lote / Pré-lote', 'Empresa', 'Primeira bipagem', 'Última bipagem', 'Último local', 'Tempo fora', 'Tempo fora (horas)', 'Aparelho', 'Situação'];
+const CAB_DUP = ['Registrado em', 'Tipo', 'Lote / Pré-lote', 'Data', 'Local', 'Mantida: hora', 'Mantida: usuário', 'Mantida: ID', 'Excluída: hora', 'Excluída: usuário', 'Excluída: ID', 'Motivo'];
+const CAB_USR = ['Usuário', 'Nome', 'Perfil', 'Situação', 'Sal', 'Hash', 'Criado em', 'Criado por', 'Atualizado em'];
+const CAB_LOGUSR = ['Data/hora', 'Ação', 'Usuário', 'Feito por'];
+const ABA_DUP = 'Repetidas offline', ABA_USR = 'Usuários', ABA_LOGUSR = 'Log de usuários';
 const PASTA_FOTOS = 'Monitor Antecâmara - Fotos';
 
 function abaCom_(nome, cab) {
@@ -41,6 +45,105 @@ function resposta_(obj) {
 
 const txt_ = v => (v instanceof Date) ? Utilities.formatDate(v, Session.getScriptTimeZone(), 'dd/MM/yyyy') : String(v === undefined || v === null ? '' : v);
 const hor_ = v => (v instanceof Date) ? Utilities.formatDate(v, Session.getScriptTimeZone(), 'HH:mm:ss') : String(v || '');
+
+/* ================== USUÁRIOS ==================
+   Senhas nunca ficam em texto: guardamos SHA-256(sal + ':' + senha). */
+const hex_ = bytes => bytes.map(b => ((b + 256) % 256).toString(16).padStart(2, '0')).join('');
+const hashSenha_ = (sal, senha) => hex_(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, sal + ':' + senha, Utilities.Charset.UTF_8));
+const normUsr_ = u => String(u || '').trim().toLowerCase();
+function lerUsuarios_() {
+  const sh = abaCom_(ABA_USR, CAB_USR), n = sh.getLastRow();
+  const lista = n > 1 ? sh.getRange(2, 1, n - 1, CAB_USR.length).getValues() : [];
+  return { sh, lista: lista.map((v, i) => ({ linha: i + 2, usuario: String(v[0]), nome: String(v[1]), perfil: String(v[2]), situacao: String(v[3]), sal: String(v[4]), hash: String(v[5]), criadoEm: v[6], criadoPor: String(v[7]) })).filter(u => u.usuario) };
+}
+function logUsr_(acao, usuario, por) { abaCom_(ABA_LOGUSR, CAB_LOGUSR).appendRow([new Date(), acao, usuario, por || '']); }
+function conferir_(lista, usuario, senha) {
+  const u = lista.find(x => x.usuario === normUsr_(usuario));
+  if (!u || u.situacao !== 'Ativo' || hashSenha_(u.sal, String(senha || '')) !== u.hash) return null;
+  return u;
+}
+function usuarios_(d) {
+  const { sh, lista } = lerUsuarios_();
+  const temAdmin = lista.some(u => u.perfil === 'Administrador' && u.situacao === 'Ativo');
+  if (d.acao === 'statusUsuarios') return { ok: true, temAdmin };
+  if (d.acao === 'criarAdmin') {   // só funciona com a lista de usuários vazia (primeiro acesso)
+    if (lista.length) return { ok: false, erro: 'O administrador já foi criado. Entre com usuário e senha.' };
+    const usr = normUsr_(d.usuario), senha = String(d.senha || '');
+    if (!usr || senha.length < 4) return { ok: false, erro: 'Informe usuário e uma senha com pelo menos 4 caracteres.' };
+    const sal = Utilities.getUuid();
+    sh.appendRow([usr, d.nome || usr, 'Administrador', 'Ativo', sal, hashSenha_(sal, senha), new Date(), '(primeiro acesso)', new Date()]);
+    logUsr_('Administrador criado', usr, '(primeiro acesso)');
+    return { ok: true };
+  }
+  if (d.acao === 'login') {
+    const u = conferir_(lista, d.usuario, d.senha);
+    if (!u) return { ok: false, erro: 'Usuário ou senha inválidos.' };
+    logUsr_('Login', u.usuario, d.aparelho || '');
+    return { ok: true, usuario: { usuario: u.usuario, nome: u.nome, perfil: u.perfil }, sal: u.sal, hash: u.hash };
+  }
+  if (d.acao === 'usuarios') {   // área do administrador: exige usuário e senha de um Administrador
+    const adm = conferir_(lista, d.admin && d.admin.usuario, d.admin && d.admin.senha);
+    if (!adm || adm.perfil !== 'Administrador') return { ok: false, erro: 'Acesso negado: usuário ou senha de administrador inválidos.' };
+    const alvo = normUsr_(d.usuario), u = lista.find(x => x.usuario === alvo);
+    if (d.op === 'salvar') {
+      const senha = String(d.senha || '');
+      if (!alvo || !/^[a-z0-9._-]{2,30}$/.test(alvo)) return { ok: false, erro: 'Usuário inválido: use letras, números, ponto, hífen ou sublinhado (sem espaços).' };
+      if (u) return { ok: false, erro: 'Este usuário já existe.' };
+      if (senha.length < 4) return { ok: false, erro: 'A senha precisa ter pelo menos 4 caracteres.' };
+      const sal = Utilities.getUuid();
+      sh.appendRow([alvo, d.nome || alvo, d.perfil === 'Administrador' ? 'Administrador' : 'Operador', 'Ativo', sal, hashSenha_(sal, senha), new Date(), adm.usuario, new Date()]);
+      logUsr_('Usuário cadastrado (' + (d.perfil === 'Administrador' ? 'Administrador' : 'Operador') + ')', alvo, adm.usuario);
+    } else if (d.op === 'senha') {
+      if (!u) return { ok: false, erro: 'Usuário não encontrado.' };
+      if (String(d.senha || '').length < 4) return { ok: false, erro: 'A senha precisa ter pelo menos 4 caracteres.' };
+      const sal = Utilities.getUuid();
+      sh.getRange(u.linha, 5, 1, 2).setValues([[sal, hashSenha_(sal, String(d.senha))]]); sh.getRange(u.linha, 9).setValue(new Date());
+      logUsr_('Senha alterada', u.usuario, adm.usuario);
+    } else if (d.op === 'situacao') {
+      if (!u) return { ok: false, erro: 'Usuário não encontrado.' };
+      if (u.usuario === adm.usuario) return { ok: false, erro: 'Você não pode desativar o próprio usuário.' };
+      const nova = u.situacao === 'Ativo' ? 'Inativo' : 'Ativo';
+      sh.getRange(u.linha, 4).setValue(nova); sh.getRange(u.linha, 9).setValue(new Date());
+      logUsr_(nova === 'Ativo' ? 'Usuário reativado' : 'Usuário desativado', u.usuario, adm.usuario);
+    }
+    const atual = lerUsuarios_().lista.map(x => ({ usuario: x.usuario, nome: x.nome, perfil: x.perfil, situacao: x.situacao, criadoPor: x.criadoPor,
+      criadoEm: x.criadoEm instanceof Date ? Utilities.formatDate(x.criadoEm, Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm') : String(x.criadoEm) }));
+    return { ok: true, usuarios: atual };
+  }
+  return null;
+}
+
+/* ================== BIPAGENS REPETIDAS (offline) ==================
+   Mesmo lote/pré-lote, mesmo dia e mesmo local em mais de uma bipagem ativa: mantém a mais antiga,
+   exclui as demais e registra o histórico na aba "Repetidas offline". */
+const normLocal_ = s => String(s || '').toUpperCase().replace(/\s+/g, ' ').trim();
+function tsLinha_(v) {
+  const t = Number(v[24]); if (t) return t;
+  const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(txt_(v[1])), h = hor_(v[2]) || '00:00:00';
+  return m ? new Date(m[3] + '-' + m[2] + '-' + m[1] + 'T' + h).getTime() : 0;
+}
+function resolverRepetidas_(sh, idsNovos) {
+  const n = sh.getLastRow(); if (n < 2 || !idsNovos.length) return [];
+  const vals = sh.getRange(2, 1, n - 1, CABECALHO.length).getValues();
+  const ativas = vals.map((v, i) => ({ v, linha: i + 2, id: String(v[0]), ts: tsLinha_(v) })).filter(x => String(x.v[14]).indexOf('Excluída') !== 0);
+  const novos = new Set(idsNovos), excluidas = [];
+  const mesmo = (a, b) => String(a.v[15] || 'Lote') === String(b.v[15] || 'Lote') && String(a.v[3]).toUpperCase() === String(b.v[3]).toUpperCase()
+    && txt_(a.v[1]) === txt_(b.v[1]) && ((a.v[25] && a.v[25] === b.v[25]) || normLocal_(a.v[5]) === normLocal_(b.v[5]));
+  ativas.filter(x => novos.has(x.id)).forEach(nova => {
+    if (excluidas.indexOf(nova.id) >= 0) return;
+    const grupo = ativas.filter(x => excluidas.indexOf(x.id) < 0 && mesmo(x, nova)).sort((a, b) => a.ts - b.ts);
+    if (grupo.length < 2) return;
+    const mantida = grupo[0], log = abaCom_(ABA_DUP, CAB_DUP);
+    grupo.slice(1).forEach(x => {
+      sh.getRange(x.linha, 15).setValue('Excluída (repetida offline)');
+      sh.getRange(x.linha, 1, 1, CABECALHO.length).setFontLine('line-through').setFontColor('#999999');
+      log.appendRow([new Date(), x.v[15] || 'Lote', x.v[3], txt_(x.v[1]), x.v[5], hor_(mantida.v[2]), mantida.v[12], mantida.id, hor_(x.v[2]), x.v[12], x.id,
+        'Mesmo lote no mesmo local no mesmo dia (bipagem feita sem internet). Mantida a mais antiga.']);
+      excluidas.push(x.id);
+    });
+  });
+  return excluidas;
+}
 
 function doGet(e) {
   const sh = abaCom_(ABA, CABECALHO);
@@ -79,6 +182,7 @@ function doPost(e) {
   lock.waitLock(25000);
   try {
     const dados = JSON.parse(e.postData.contents || '{}');
+    if (dados.acao) { const r = usuarios_(dados); if (r) return resposta_(r); }
     const sh = abaCom_(ABA, CABECALHO);
     const ultima = sh.getLastRow();
     const ids = ultima > 1 ? sh.getRange(2, 1, ultima - 1, 1).getValues().map(r => String(r[0])) : [];
@@ -119,11 +223,13 @@ function doPost(e) {
     const excluidos = [];
     (dados.excluir || []).forEach(id => {
       if (pos[id]) {
-        sh.getRange(pos[id], 15).setValue('Excluída');
+        sh.getRange(pos[id], 15).setValue('Excluída' + (dados.usuario ? ' por ' + dados.usuario : ''));
         sh.getRange(pos[id], 1, 1, CABECALHO.length).setFontLine('line-through').setFontColor('#999999');
       }
       excluidos.push(id);
     });
+
+    const repetidas = resolverRepetidas_(sh, novas.map(x => String(x[0])));
 
     const checklists = [];
     (dados.checklists || []).forEach(c => {
@@ -169,7 +275,7 @@ function doPost(e) {
       });
     }
 
-    return resposta_({ ok: true, recebidos, excluidos, checklists, fotos, locais: locaisOk });
+    return resposta_({ ok: true, recebidos, excluidos, checklists, fotos, locais: locaisOk, repetidas });
   } catch (err) {
     return resposta_({ ok: false, erro: String(err) });
   } finally {

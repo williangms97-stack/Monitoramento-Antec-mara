@@ -22,6 +22,9 @@ numa Planilha Google que funciona como banco de dados central para vários apare
 4. **Empresa pelo lote:** 2º ao 4º caractere `WML` = Basf · 3º e 4º `DM` = Dois Marcos · demais = Terceiro. Pré-lotes não têm empresa.
 5. **Pré-lotes:** identificados pela **foto da etiqueta** (OCR). O QR do pré-lote fica vinculado ao número na primeira foto.
 6. **Vários aparelhos:** bipagens, checklists e locais são compartilhados pela planilha. As regras são calculadas sobre a união dos dados.
+7. **Exclusão:** uma bipagem excluída por qualquer usuário sai de todos os aparelhos. A planilha registra quem excluiu.
+8. **Repetida offline:** se o mesmo lote cair no mesmo local no mesmo dia em mais de uma bipagem (por exemplo, um celular estava sem internet), a planilha mantém a **mais antiga**, exclui as outras em todos os aparelhos e registra o caso na aba **Repetidas offline**.
+9. **Login:** cada pessoa entra com usuário e senha ao abrir o app (e de novo após 10 min em segundo plano). Sem internet, vale o último login feito naquele aparelho. Os usuários são cadastrados por um administrador em *Exportar → Usuários*, com usuário e senha de administrador. No primeiro acesso, sem nenhum usuário, o app pede para criar o administrador.
 
 ## Leitura das etiquetas
 
@@ -42,10 +45,13 @@ A URL `/exec` não muda. Ela está na constante `URL_PLANILHA` do `index.html`.
 - **Checklists:** conclusões e reaberturas de checklist.
 - **Finalizados:** lotes finalizados em cada checklist.
 - **Locais:** posições cadastradas, compartilhadas entre os aparelhos.
+- **Usuários:** cadastro de usuários (senha guardada como hash SHA-256 com sal, nunca em texto).
+- **Log de usuários:** cadastros, trocas de senha, desativações e logins.
+- **Repetidas offline:** histórico das bipagens repetidas removidas automaticamente.
 
 > Use a planilha para consulta. Não edite nem apague linhas manualmente: para corrigir uma bipagem, exclua pelo app.
 
 ## Segurança
 
-O `index.html` contém a URL do App da Web da planilha. Quem tiver essa URL consegue gravar dados nela.
-Por isso, **mantenha este repositório privado**.
+O `index.html` contém a URL do App da Web da planilha, que fica visível para qualquer pessoa que abre o app publicado.
+Senhas nunca ficam no código nem na planilha em texto. A área de usuários só funciona com usuário e senha de administrador.

@@ -50,7 +50,7 @@ h2{font-size:20px;margin:0;text-wrap:balance}
 h3{font-size:13px;margin:0;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px}
 label.f{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
-input[type=text],input[type=date],input[type=search],select,textarea{width:100%;min-height:48px;border:1.5px solid var(--line);border-radius:8px;background:var(--bg);padding:10px 12px;font-size:17px;text-transform:none;letter-spacing:0;font-weight:500;color:var(--ink)}
+input[type=text],input[type=password],input[type=date],input[type=search],select,textarea{width:100%;min-height:48px;border:1.5px solid var(--line);border-radius:8px;background:var(--bg);padding:10px 12px;font-size:17px;text-transform:none;letter-spacing:0;font-weight:500;color:var(--ink)}
 textarea{font-family:var(--f-code);font-size:13px;min-height:70px;resize:vertical}
 input:focus,select:focus,textarea:focus,button:focus-visible{outline:3px solid var(--accent);outline-offset:1px}
 .btn{min-height:52px;border:0;border-radius:8px;padding:12px 16px;font-weight:700;font-size:17px;background:var(--accent);color:var(--accent-ink);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px}
@@ -97,6 +97,15 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:3px solid v
 .dgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .dgrid label.f input{min-height:42px;font-size:15px;padding:8px 10px}
 .dgrid label.f:nth-child(1),.dgrid label.f:nth-child(n+4){grid-column:1/-1}
+.loginscr{position:fixed;inset:0;z-index:55;background:var(--bg);display:flex;align-items:center;justify-content:center;overflow:auto;
+  padding:calc(16px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.loginbox{width:100%;max-width:400px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px 18px;display:flex;flex-direction:column;gap:12px}
+.loginlogo{width:56px;height:56px;border-radius:14px;background:var(--ink);color:var(--bg);display:flex;align-items:center;justify-content:center}
+.loginlogo svg{width:32px;height:32px}
+.userchip{font-size:12px;font-weight:700;border-radius:6px;padding:4px 8px;border:1px solid currentColor;background:transparent;color:inherit;cursor:pointer;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (max-width:480px){.hdr-right .datebadge{display:none}.brand small{display:none}}
+.urow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.urow .actions{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
 .okbox{background:var(--surface);margin:auto;width:min(92%,420px);border-radius:16px;padding:28px 20px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
 .ok-bg{align-items:center}
 .okicon{width:72px;height:72px;border-radius:50%;background:var(--ok);color:#fff;display:flex;align-items:center;justify-content:center}
@@ -136,7 +145,7 @@ nav.tabs button.scan svg{color:var(--accent-ink)}
 <div class="app">
   <header class="top">
     <div class="brand"><b>Monitor de Antecâmara</b><small>Lotes e pré-lotes</small></div>
-    <div class="hdr-right"><button class="syncbadge" id="syncBadge" hidden></button><div class="datebadge" id="hdrDate"></div></div>
+    <div class="hdr-right"><button class="syncbadge" id="syncBadge" hidden></button><button class="userchip" id="userChip" hidden></button><div class="datebadge" id="hdrDate"></div></div>
   </header>
 
   <main>
@@ -224,12 +233,18 @@ nav.tabs button.scan svg{color:var(--accent-ink)}
         <h3>Planilha Google · vários aparelhos</h3>
         <div class="small">A planilha é o banco de dados central: cada bipagem é enviada na hora e o app baixa as bipagens, checklists e locais dos outros aparelhos. Use a mesma URL em todos os celulares. Sem internet, fica numa fila e é enviado quando a conexão voltar.</div>
         <label class="f">Endereço do app da planilha<input type="text" id="cfgUrl" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off" inputmode="url"></label>
-        <label class="f">Nome deste aparelho / operador<input type="text" id="cfgAparelho" placeholder="Ex.: Celular Willian"></label>
+        <input type="hidden" id="cfgAparelho">
         <div class="row">
           <button class="btn" id="btnCfgSave">Salvar e testar</button>
           <button class="btn sec" id="btnSyncAll">Enviar histórico</button>
         </div>
         <div class="raw" id="syncInfo">Planilha não configurada.</div>
+      </div>
+
+      <div class="card">
+        <h3>Usuários</h3>
+        <div class="small">Cadastro de quem pode usar o app. Somente administradores acessam, com usuário e senha. Todos os cadastros ficam registrados na planilha (abas "Usuários" e "Log de usuários").</div>
+        <button class="btn sec" id="btnUsuarios">Gerenciar usuários</button>
       </div>
 
       <div class="card">
@@ -254,6 +269,19 @@ nav.tabs button.scan svg{color:var(--accent-ink)}
 </div>
 
 <div id="sheetHost"></div>
+<div class="loginscr" id="loginScr">
+  <form class="loginbox" id="loginForm" autocomplete="on">
+    <div class="loginlogo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7V4h3M21 7V4h-3M3 17v3h3M21 17v3h-3M7 12h10"/></svg></div>
+    <h2 id="lgTit">Monitor de Antecâmara</h2>
+    <div class="small" id="lgSub">Entre com o seu usuário e senha.</div>
+    <label class="f" id="lgNomeBox" hidden>Seu nome<input type="text" id="lgNome" autocomplete="name" placeholder="Ex.: Willian Gomes"></label>
+    <label class="f">Usuário<input type="text" id="lgUsuario" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="Ex.: willian"></label>
+    <label class="f">Senha<input type="password" id="lgSenha" autocomplete="current-password"></label>
+    <label class="f" id="lgSenha2Box" hidden>Repita a senha<input type="password" id="lgSenha2" autocomplete="new-password"></label>
+    <div id="lgMsg"></div>
+    <button class="btn" type="submit" id="lgBtn">Entrar</button>
+  </form>
+</div>
 
 <script>
 /* ================== DADOS ================== */
@@ -354,6 +382,8 @@ function empresaDoLote(l){
 const tipoDe = r => r.tipo || 'Lote';
 const chave = (tipo, lote) => (tipo==='Pré-lote'?'P:':'L:') + String(lote).toUpperCase();
 const diasEntre = (a,b) => Math.round((new Date(b+'T12:00')-new Date(a+'T12:00'))/86400000);
+let SESSAO = null;   // usuário logado (só em memória: fechou o app, precisa entrar de novo)
+const quem = () => SESSAO ? SESSAO.nome : (db.planilha && db.planilha.aparelho) || '';
 let SEQ = [], ESTADO = {}, CK = {}, REMOTO = { registros:[], eventos:[], em:0 };
 /* Bipagens deste aparelho + dos outros aparelhos (vindas da planilha), sem as excluídas */
 function todos(){
@@ -540,7 +570,7 @@ $('#pendCard').onclick = async e => {
     }
     const n = ativosPendentes().length;
     if(!confirm((n ? `Concluir o checklist de hoje?\n\n${n} lote(s) não encontrado(s) serão FINALIZADOS.` : 'Concluir o checklist de hoje?') + aviso)){ render(); return; }
-    const ev = { id:uid(), acao:'Concluído', data:t, ts:Date.now(), aparelho:db.planilha.aparelho||'' };
+    const ev = { id:uid(), acao:'Concluído', data:t, ts:Date.now(), aparelho:quem() };
     db.eventosCk.push(ev);
     recompute();
     const fin = SEQ.filter(s=>s.final && s.final.data===t);
@@ -551,7 +581,7 @@ $('#pendCard').onclick = async e => {
   }
   if(e.target.id==='btnReabrir'){
     if(!confirm('Reabrir o checklist de hoje? Os lotes finalizados hoje voltam a ficar ativos.')) return;
-    const ev = { id:uid(), acao:'Reaberto', data:t, ts:Date.now(), aparelho:db.planilha.aparelho||'' };
+    const ev = { id:uid(), acao:'Reaberto', data:t, ts:Date.now(), aparelho:quem() };
     db.eventosCk.push(ev);
     db.filaChecklist.push({ id:ev.id, acao:'Reaberto', dataKey:t, ts:ev.ts, data:br(t), hora:hora(new Date(ev.ts)), aparelho:ev.aparelho, conferidos:0, finalizados:[] });
     save(); render(); toast('Checklist reaberto'); sincronizar();
@@ -709,7 +739,7 @@ function abrirConfirmacao(raw, manual, opts={}){
         CAMPOS_APRENDIZADO.forEach(k=>{ const b = lido.bruto[k], f = dados[k]; if(b && f && f !== lido.dados[k]) db.correcoesOcr[k+'|'+corrigirOcr({[k]:b})[k]] = f; });
       }
     }
-    const reg = { id:uid(), ts:now.getTime(), data:dkey(now), hora:hora(now), tipo, lote, empresa, modelo:empresa, dados: tipo==='Pré-lote' ? dados : undefined, codigo, localId:locId, localNome:localNome(loc), conteudo:raw||(foto?'(foto)':'(manual)') };
+    const reg = { id:uid(), aparelho:quem(), ts:now.getTime(), data:dkey(now), hora:hora(now), tipo, lote, empresa, modelo:empresa, dados: tipo==='Pré-lote' ? dados : undefined, codigo, localId:locId, localNome:localNome(loc), conteudo:raw||(foto?'(foto)':'(manual)') };
     if(foto){ try{ await fotoPut(reg.id, foto); reg.temFoto = true; }catch(e){ toast('Não foi possível salvar a foto no aparelho.'); } }
     if(codigo) db.etiquetas['cod|'+codigo] = { lote, tipo, empresa, dados: reg.dados, em:reg.ts };
     db.registros.push(reg); db.localAtual = locId; save(); recompute(); sincronizar();
@@ -1011,7 +1041,7 @@ function exportar(de, ate){
   const regs = todos().filter(r=>(!de||r.data>=de) && (!ate||r.data<=ate)).sort((a,b)=>a.ts-b.ts);
   if(!regs.length){ toast('Não há bipagens no período escolhido.'); return; }
   const bip = regs.map(r=>{ const d = r.dados||{}; return {
-    'Data': br(r.data), 'Hora': r.hora, 'Tipo': r.tipo, 'Lote / Pré-lote': r.lote, 'Empresa': r.empresa, 'Local': r.localNome, 'Aparelho': r.remoto ? D(r.aparelho) : D(db.planilha.aparelho),
+    'Data': br(r.data), 'Hora': r.hora, 'Tipo': r.tipo, 'Lote / Pré-lote': r.lote, 'Empresa': r.empresa, 'Local': r.localNome, 'Usuário': D(r.aparelho),
     'Reincidente': r.reincidente?'Sim':'Não', 'Posição no dia': r.posDia, 'Dia na sequência': r.diaSeq,
     'Início da sequência': br(dkey(new Date(r.inicioTs)))+' '+hora(new Date(r.inicioTs)),
     'Tempo fora da câmara fria': dur(r.foraMs), 'Tempo fora (horas)': horasDec(r.foraMs),
@@ -1066,7 +1096,7 @@ $('#btnWipe').onclick = () => {
 /* ================== PLANILHA GOOGLE (banco central multiaparelhos) ==================
    Cada aparelho envia o que fez (bipagens, exclusões, checklists, locais) e baixa o que os outros fizeram.
    As regras (reincidência, posição no dia, checklist) são calculadas sobre a união. */
-let syncando = null, syncErro = '', syncUltimo = 0;
+let syncando = null, syncErro = '', syncUltimo = 0, syncDeNovo = false, syncSeguinte = null;
 const DIAS_HISTORICO = 60;
 function pendentesEnvio(){ return db.registros.filter(r=>!r.enviado); }
 function filaTotal(){ return pendentesEnvio().length + db.filaExcluir.length + db.filaChecklist.length + db.filaLocais.length; }
@@ -1076,7 +1106,7 @@ function payloadRegistro(r){
     reincidente:r.reincidente?'Sim':'Não', diaSeq:r.diaSeq,
     inicio:br(dkey(new Date(r.inicioTs)))+' '+hora(new Date(r.inicioTs)),
     tempoFora:dur(r.foraMs), horasFora:horasDec(r.foraMs),
-    codigo:r.codigo||'', aparelho:db.planilha.aparelho||''
+    codigo:r.codigo||'', aparelho:r.aparelho||quem()
   };
 }
 async function lerResposta(res){
@@ -1101,9 +1131,10 @@ async function enviar(){
       if(r.temFoto && !r.fotoUrl){ const f = await fotoGet(r.id); if(f){ pl.foto = f.split(',')[1]; peso++; } }
       grupo.push(pl);
     }
-    const j = await postPlanilha({ registros:grupo, excluir: primeira?exc:[], checklists: primeira?cks:[], locais: primeira?locs:[] });
+    const j = await postPlanilha({ usuario:quem(), registros:grupo, excluir: primeira?exc:[], checklists: primeira?cks:[], locais: primeira?locs:[] });
     const ok = new Set(j.recebidos||[]), urls = j.fotos||{};
     db.registros.forEach(r=>{ if(ok.has(r.id)) r.enviado = true; if(urls[r.id]) r.fotoUrl = urls[r.id]; });
+    if((j.repetidas||[]).length) removerLocais(j.repetidas, 'repetida');
     if(primeira){
       const ex = new Set(j.excluidos||[]); db.filaExcluir = db.filaExcluir.filter(id=>!ex.has(id));
       const ck = new Set(j.checklists||[]); db.filaChecklist = db.filaChecklist.filter(c=>!ck.has(c.id));
@@ -1112,13 +1143,27 @@ async function enviar(){
     primeira = false; save();
   }
 }
+/* Remove deste aparelho bipagens que a planilha marcou como excluídas (por outro usuário ou repetida offline) */
+function removerLocais(ids, motivo){
+  const set = new Set(ids), sai = db.registros.filter(r=>set.has(r.id));
+  if(!sai.length) return;
+  sai.forEach(r=>{ if(r.temFoto) fotoDel(r.id); });
+  db.registros = db.registros.filter(r=>!set.has(r.id));
+  db.filaExcluir = db.filaExcluir.filter(id=>!set.has(id));
+  save();
+  if(motivo==='repetida') toast(`Bipagem repetida (feita sem internet) removida: ${sai.map(r=>r.lote).join(', ')}. Mantida a mais antiga.`);
+}
 async function baixar(){
   const desde = Date.now() - DIAS_HISTORICO*86400000;
   const j = await lerResposta(await fetch(db.planilha.url + '?acao=dados&desde=' + desde, { redirect:'follow' }));
+  // bipagens excluídas na planilha (por qualquer aparelho) saem também deste aparelho
+  const excl = (j.registros||[]).filter(r=>String(r.situacao||'').indexOf('Excluída')===0);
+  removerLocais(excl.filter(r=>!/repetida/i.test(r.situacao)).map(r=>r.id), 'excluida');
+  removerLocais(excl.filter(r=>/repetida/i.test(r.situacao)).map(r=>r.id), 'repetida');
   const meus = new Set(db.registros.map(r=>r.id));
   REMOTO = {
     em: Date.now(),
-    registros: (j.registros||[]).filter(r=>r.situacao!=='Excluída' && !meus.has(r.id)).map(r=>{
+    registros: (j.registros||[]).filter(r=>String(r.situacao||'').indexOf('Excluída')!==0 && !meus.has(r.id)).map(r=>{
       const ts = Number(r.ts) || tsDe(r.data, r.hora), d = new Date(ts);
       return { id:r.id, ts, data:dkey(d), hora:r.hora || hora(d), tipo:r.tipo||'Lote', lote:String(r.lote||'').toUpperCase(), empresa:r.empresa||'',
         localNome:r.local||'', localId:r.localId||'', codigo:r.codigo||'', dados:r.dados||undefined, fotoUrl:r.fotoUrl||'', aparelho:r.aparelho||'', remoto:true };
@@ -1140,15 +1185,20 @@ async function baixar(){
 function sincronizar(){
   if(!db.planilha.url){ renderSync(); return Promise.resolve(); }
   if(!navigator.onLine){ renderSync(); return Promise.resolve(); }
-  if(syncando) return syncando;
+  // se já está sincronizando, agenda mais uma rodada logo depois (para não esperar 1 minuto)
+  if(syncando){ syncDeNovo = true; return syncando.then(()=>syncSeguinte || undefined); }
   syncando = (async ()=>{
     renderSync();
-    try{ await enviar(); await baixar(); syncErro = ''; syncUltimo = Date.now(); }
-    catch(e){ syncErro = e.message || String(e); }
+    do{
+      syncDeNovo = false;
+      try{ await enviar(); await baixar(); syncErro = ''; syncUltimo = Date.now(); }
+      catch(e){ syncErro = e.message || String(e); break; }
+    } while(syncDeNovo);
     syncando = null; renderSync();
-    if(!document.querySelector('.sheet-bg')) render();
+    if(SESSAO && !document.querySelector('.sheet-bg')) render();
   })();
-  return syncando;
+  const atual = syncando; syncSeguinte = atual;
+  return atual;
 }
 function renderSync(){
   const b = $('#syncBadge'), info = $('#syncInfo');
@@ -1163,7 +1213,6 @@ function renderSync(){
     const env = db.registros.filter(r=>r.enviado).length;
     info.textContent = `Deste aparelho: ${env} enviadas · Na fila: ${n}\nDe outros aparelhos: ${REMOTO.registros.length} bipagens (últimos ${DIAS_HISTORICO} dias)` +
       (syncUltimo ? `\nÚltima sincronização: ${hora(new Date(syncUltimo))}` : '') +
-      (!db.planilha.aparelho ? '\nDica: preencha o nome do aparelho para identificar quem bipou.' : '') +
       (!navigator.onLine ? '\nSem internet: os envios serão feitos quando a conexão voltar.' : '') +
       (syncErro ? `\nErro: ${syncErro}` : '');
   }
@@ -1172,7 +1221,7 @@ $('#syncBadge').onclick = () => show('ajustes');
 $('#btnCfgSave').onclick = async () => {
   const url = $('#cfgUrl').value.trim();
   if(url && !/^https:\/\/script\.google(usercontent)?\.com\//.test(url)){ toast('O endereço deve começar com https://script.google.com/'); return; }
-  db.planilha.url = url; db.planilha.desligada = !url; db.planilha.aparelho = $('#cfgAparelho').value.trim(); save();
+  db.planilha.url = url; db.planilha.desligada = !url; save();
   if(!url){ REMOTO = { registros:[], eventos:[], em:0 }; render(); renderSync(); toast('Integração desligada'); return; }
   $('#syncInfo').textContent = 'Testando conexão…';
   try{ await postPlanilha({ registros:[], excluir:[] }); syncErro=''; toast('Planilha conectada');
@@ -1189,7 +1238,133 @@ window.addEventListener('online', sincronizar);
 document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) sincronizar(); });
 setInterval(sincronizar, 60000);
 const _renderAjustes = renderAjustes;
-renderAjustes = function(){ _renderAjustes(); if(document.activeElement!==$('#cfgUrl')) $('#cfgUrl').value = db.planilha.url||''; if(document.activeElement!==$('#cfgAparelho')) $('#cfgAparelho').value = db.planilha.aparelho||''; renderSync(); };
+renderAjustes = function(){ _renderAjustes(); if(document.activeElement!==$('#cfgUrl')) $('#cfgUrl').value = db.planilha.url||''; renderSync(); };
+
+/* ================== LOGIN E USUÁRIOS ==================
+   Usuários ficam na planilha (senha guardada como hash). O login confere na planilha quando há internet.
+   Sem internet, vale o último login feito neste aparelho (hash guardado aqui). A sessão fica só na memória:
+   ao fechar/recarregar o app, ou após 10 min em segundo plano, é preciso entrar de novo. */
+const hexDe = buf => [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
+async function hashSenha(sal, senha){ return hexDe(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(sal+':'+senha))); }
+const normUsr = u => String(u||'').trim().toLowerCase();
+let modoLogin = 'entrar';
+function msgLogin(t, tipo){ $('#lgMsg').innerHTML = t ? `<div class="alert ${tipo||'bad'}">${esc(t)}</div>` : ''; }
+function modoPrimeiroAcesso(){
+  modoLogin = 'admin';
+  $('#lgTit').textContent = 'Primeiro acesso';
+  $('#lgSub').textContent = 'Ainda não existe administrador. Crie agora o seu usuário de administrador: ele será usado para cadastrar os demais usuários.';
+  $('#lgNomeBox').hidden = false; $('#lgSenha2Box').hidden = false; $('#lgBtn').textContent = 'Criar administrador';
+}
+async function iniciarLogin(){
+  $('#loginScr').hidden = false; SESSAO = null; renderUsuario();
+  setTimeout(()=>{ try{ $('#lgUsuario').value = db.ultimoUsuario||''; ($('#lgUsuario').value ? $('#lgSenha') : $('#lgUsuario')).focus(); }catch(e){} }, 50);
+  if(db.planilha.url && navigator.onLine && !Object.keys(db.credenciais||{}).length){
+    try{ const j = await postPlanilha({ acao:'statusUsuarios' }); if(!j.temAdmin) modoPrimeiroAcesso(); }catch(e){}
+  }
+}
+function entrou(u){
+  SESSAO = u; db.ultimoUsuario = u.usuario; save();
+  $('#loginScr').hidden = true; $('#lgSenha').value = ''; $('#lgSenha2').value = ''; msgLogin('');
+  renderUsuario(); render(); sincronizar();
+  toast('Olá, '+u.nome.split(' ')[0]+'!');
+}
+$('#loginForm').onsubmit = async e => {
+  e.preventDefault();
+  const usuario = normUsr($('#lgUsuario').value), senha = $('#lgSenha').value;
+  if(!usuario || !senha){ msgLogin('Informe usuário e senha.'); return; }
+  const btn = $('#lgBtn'); btn.disabled = true; btn.textContent = 'Aguarde…';
+  try{
+    if(modoLogin==='admin'){
+      if(senha !== $('#lgSenha2').value){ msgLogin('As senhas não conferem.'); return; }
+      if(senha.length < 4){ msgLogin('A senha precisa ter pelo menos 4 caracteres.'); return; }
+      await postPlanilha({ acao:'criarAdmin', usuario, senha, nome: $('#lgNome').value.trim() || usuario });
+      modoLogin = 'entrar'; $('#lgNomeBox').hidden = true; $('#lgSenha2Box').hidden = true;
+      $('#lgTit').textContent = 'Monitor de Antecâmara'; $('#lgSub').textContent = 'Entre com o seu usuário e senha.';
+    }
+    let j = null;
+    if(db.planilha.url && navigator.onLine){
+      try{ j = await postPlanilha({ acao:'login', usuario, senha, aparelho: navigator.userAgent.slice(0,80) }); }
+      catch(err){ if(/inválid|negado/i.test(err.message)){ msgLogin(err.message); return; } }
+    }
+    if(j){
+      db.credenciais = db.credenciais || {};
+      db.credenciais[usuario] = { usuario, nome:j.usuario.nome, perfil:j.usuario.perfil, sal:j.sal, hash:j.hash, em:Date.now() };
+      entrou({ usuario, nome:j.usuario.nome, perfil:j.usuario.perfil }); return;
+    }
+    // sem internet: confere com o último login feito neste aparelho
+    const c = (db.credenciais||{})[usuario];
+    if(c && await hashSenha(c.sal, senha) === c.hash){ entrou({ usuario, nome:c.nome, perfil:c.perfil, offline:true }); toast('Entrou sem internet (último acesso neste aparelho).'); return; }
+    msgLogin(c ? 'Usuário ou senha inválidos.' : 'Sem internet. Este usuário ainda não entrou neste aparelho: conecte-se à internet para o primeiro acesso.');
+  }catch(err){ msgLogin(err.message || String(err)); }
+  finally{ btn.disabled = false; btn.textContent = modoLogin==='admin' ? 'Criar administrador' : 'Entrar'; }
+};
+function renderUsuario(){
+  const c = $('#userChip');
+  if(!SESSAO){ c.hidden = true; return; }
+  c.hidden = false; c.textContent = SESSAO.nome.split(' ')[0] + ' ▾'; c.title = 'Usuário: '+SESSAO.nome+' (tocar para sair)';
+}
+function sair(){ stopCam(); $('#sheetHost').innerHTML=''; iniciarLogin(); }
+$('#userChip').onclick = () => {
+  const host = $('#sheetHost');
+  host.innerHTML = `<div class="sheet-bg" id="uBg"><div class="sheet">
+    <h2>${esc(SESSAO.nome)}</h2><div class="small">Usuário: <b>${esc(SESSAO.usuario)}</b> · ${esc(SESSAO.perfil)}${SESSAO.offline?' · entrou sem internet':''}</div>
+    <div class="row"><button class="btn ghost" id="uFechar">Fechar</button><button class="btn danger" id="uSair">Sair</button></div></div></div>`;
+  $('#uFechar').onclick = () => host.innerHTML=''; $('#uBg').onclick = e => { if(e.target.id==='uBg') host.innerHTML=''; };
+  $('#uSair').onclick = sair;
+};
+// bloqueia após 10 min com o app em segundo plano (tirar foto do pré-lote não chega a isso)
+let escondidoEm = 0;
+document.addEventListener('visibilitychange', ()=>{
+  if(document.hidden) escondidoEm = Date.now();
+  else if(SESSAO && escondidoEm && Date.now()-escondidoEm > 10*60000){ toast('Sessão encerrada por inatividade. Entre novamente.'); sair(); }
+});
+
+/* Área do administrador: exige usuário e senha de administrador a cada acesso */
+let ADM = null;
+async function chamarUsuarios(extra){ return postPlanilha(Object.assign({ acao:'usuarios', admin:ADM }, extra||{})); }
+function telaUsuarios(lista){
+  const host = $('#sheetHost');
+  host.innerHTML = `<div class="sheet-bg" id="aBg"><div class="sheet">
+    <h2>Usuários</h2>
+    <div class="card" style="background:var(--bg)"><h3>Cadastrar usuário</h3>
+      <label class="f">Nome<input type="text" id="nuNome" placeholder="Ex.: João Silva"></label>
+      <div class="row"><label class="f">Usuário<input type="text" id="nuUsuario" autocapitalize="none" spellcheck="false" placeholder="joao.silva"></label>
+      <label class="f">Senha<input type="text" id="nuSenha" autocomplete="off" placeholder="mín. 4 caracteres"></label></div>
+      <label class="f">Perfil<select id="nuPerfil"><option>Operador</option><option>Administrador</option></select></label>
+      <button class="btn" id="nuSalvar">Cadastrar</button></div>
+    <div>${lista.map(u=>`<div class="urow"><div><b>${esc(u.nome)}</b> <span class="pill ${u.situacao==='Ativo'?'new':'fin'}">${esc(u.situacao)}</span>${u.perfil==='Administrador'?' <span class="pill mod">Admin</span>':''}<div class="small">${esc(u.usuario)} · cadastrado por ${esc(u.criadoPor)} em ${esc(u.criadoEm)}</div></div><div></div>
+      <div class="actions"><button class="btn ghost sm" data-senha="${esc(u.usuario)}">Trocar senha</button><button class="btn ghost sm" data-sit="${esc(u.usuario)}">${u.situacao==='Ativo'?'Desativar':'Reativar'}</button></div></div>`).join('')}</div>
+    <div id="aMsg"></div>
+    <button class="btn ghost" id="aFechar">Fechar</button>
+  </div></div>`;
+  $('#aFechar').onclick = () => { ADM = null; host.innerHTML=''; };
+  const exec = async (extra, ok) => { $('#aMsg').innerHTML = '<div class="small">Salvando…</div>';
+    try{ const j = await chamarUsuarios(extra); telaUsuarios(j.usuarios); toast(ok); }catch(err){ $('#aMsg').innerHTML = `<div class="alert bad">${esc(err.message)}</div>`; } };
+  $('#nuSalvar').onclick = () => exec({ op:'salvar', usuario:normUsr($('#nuUsuario').value), nome:$('#nuNome').value.trim(), senha:$('#nuSenha').value, perfil:$('#nuPerfil').value }, 'Usuário cadastrado');
+  host.querySelectorAll('[data-sit]').forEach(b=>b.onclick = () => exec({ op:'situacao', usuario:b.dataset.sit }, 'Situação alterada'));
+  host.querySelectorAll('[data-senha]').forEach(b=>b.onclick = () => {
+    const box = document.createElement('div'); box.className = 'row'; box.style.gridColumn = '1/-1';
+    box.innerHTML = `<label class="f">Nova senha de ${esc(b.dataset.senha)}<input type="text" autocomplete="off"></label><button class="btn sm" style="flex:0 0 auto;align-self:end">Salvar</button>`;
+    b.closest('.urow').appendChild(box); box.querySelector('input').focus();
+    box.querySelector('button').onclick = () => exec({ op:'senha', usuario:b.dataset.senha, senha:box.querySelector('input').value }, 'Senha alterada');
+  });
+}
+$('#btnUsuarios').onclick = () => {
+  if(!db.planilha.url || !navigator.onLine){ toast('É preciso internet para gerenciar usuários.'); return; }
+  const host = $('#sheetHost');
+  host.innerHTML = `<div class="sheet-bg" id="aBg"><form class="sheet" id="aForm">
+    <h2>Acesso do administrador</h2><div class="small">Para gerenciar usuários, confirme seu usuário e senha de administrador.</div>
+    <label class="f">Usuário<input type="text" id="aUsr" autocapitalize="none" spellcheck="false" autocomplete="username"></label>
+    <label class="f">Senha<input type="password" id="aSenha" autocomplete="current-password"></label>
+    <div id="aMsg"></div>
+    <div class="row"><button type="button" class="btn ghost" id="aCancel">Cancelar</button><button class="btn" type="submit">Entrar</button></div></form></div>`;
+  setTimeout(()=>$('#aUsr').focus(), 50);
+  $('#aCancel').onclick = () => host.innerHTML='';
+  $('#aForm').onsubmit = async e => { e.preventDefault();
+    ADM = { usuario:normUsr($('#aUsr').value), senha:$('#aSenha').value };
+    try{ const j = await chamarUsuarios({ op:'listar' }); telaUsuarios(j.usuarios); }
+    catch(err){ ADM = null; $('#aMsg').innerHTML = `<div class="alert bad">${esc(err.message)}</div>`; } };
+};
 
 /* ================== INÍCIO ================== */
 load();
@@ -1198,22 +1373,8 @@ renderSync();
 // pré-carrega o leitor de texto dos pré-lotes em segundo plano (fica guardado no aparelho depois da 1ª vez)
 setTimeout(()=>{ if(navigator.onLine && !(navigator.connection && navigator.connection.saveData)) prepararOcr().catch(()=>{}); }, 4000);
 document.querySelector('label[for=fotoPre]').addEventListener('click', ()=>{ prepararOcr().catch(()=>{}); });
-function pedirNomeAparelho(){
-  if(!db.planilha.url || db.planilha.aparelho || db.planilha.nomePulado) return;
-  const host = $('#sheetHost');
-  host.innerHTML = `<div class="sheet-bg" id="nBg"><div class="sheet">
-    <h2>Nome deste aparelho</h2>
-    <div class="small">O app está ligado à planilha central. Dê um nome a este celular para identificar quem fez cada bipagem.</div>
-    <label class="f">Nome do aparelho / operador<input type="text" id="nNome" placeholder="Ex.: Cel Willian" autocomplete="off"></label>
-    <div class="row"><button class="btn ghost" id="nPular">Agora não</button><button class="btn" id="nOk">Salvar</button></div>
-  </div></div>`;
-  setTimeout(()=>$('#nNome').focus(), 50);
-  $('#nPular').onclick = () => { db.planilha.nomePulado = true; save(); host.innerHTML=''; sincronizar(); };
-  $('#nOk').onclick = () => { const n = $('#nNome').value.trim(); if(!n){ toast('Digite um nome.'); return; } db.planilha.aparelho = n; save(); host.innerHTML=''; toast('Aparelho: '+n); sincronizar(); };
-}
-const nomePendente = !!(db.planilha.url && !db.planilha.aparelho && !db.planilha.nomePulado);
-if(nomePendente) setTimeout(pedirNomeAparelho, 400);
-fotoGet('_remoto').then(r=>{ if(r && r.registros && db.planilha.url){ REMOTO = r; if(!document.querySelector('.sheet-bg')) render(); } }).finally(()=>{ if(!nomePendente) sincronizar(); });
+fotoGet('_remoto').then(r=>{ if(r && r.registros && db.planilha.url){ REMOTO = r; if(SESSAO && !document.querySelector('.sheet-bg')) render(); } });
+iniciarLogin();
 </script>
 </body>
 </html>
