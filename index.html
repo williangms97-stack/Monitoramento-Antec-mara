@@ -286,7 +286,7 @@ nav.tabs button.scan svg{color:var(--accent-ink)}
     <label class="f" id="lgSenha2Box" hidden>Repita a senha<input type="password" id="lgSenha2" autocomplete="new-password"></label>
     <div id="lgMsg"></div>
     <button class="btn" type="submit" id="lgBtn">Entrar</button>
-    <div class="small" style="text-align:center">Versão 2026.10.19 · login e usuários</div>
+    <div class="small" style="text-align:center">Versão 2026.10.19b · zerar dados</div>
   </form>
 </div>
 
@@ -635,14 +635,14 @@ $('#btnAddLoc').onclick = () => {
   const armazem = $('#locArm').value.trim(), posicao = $('#locPos').value.trim();
   if(!posicao){ toast('Informe a posição.'); $('#locPos').focus(); return; }
   if(db.locais.some(l=>l.armazem.toUpperCase()===armazem.toUpperCase() && l.posicao.toUpperCase()===posicao.toUpperCase())){ toast('Este local já está cadastrado.'); return; }
-  const l = { id:uid(), armazem, posicao }; db.locais.push(l); db.filaLocais.push({ ...l, situacao:'Ativo' }); sincronizar();
+  const l = { id:uid(), armazem, posicao }; db.locais.push(l); db.filaLocais.push({ ...l, situacao:'Ativo', ts:Date.now() }); sincronizar();
   if(!db.localAtual) db.localAtual = l.id;
   save(); $('#locPos').value=''; $('#locPos').focus(); render(); toast('Local cadastrado');
 };
 $('#listLocais').onclick = e => {
   const id = e.target.dataset.rm; if(!id) return;
   if(!confirm('Remover este local? As bipagens já feitas continuam com o nome do local.')) return;
-  const rm = db.locais.find(l=>l.id===id); if(rm) db.filaLocais.push({ ...rm, situacao:'Removido' });
+  const rm = db.locais.find(l=>l.id===id); if(rm) db.filaLocais.push({ ...rm, situacao:'Removido', ts:Date.now() });
   db.locais = db.locais.filter(l=>l.id!==id); if(db.localAtual===id) db.localAtual=''; save(); render(); sincronizar();
 };
 
@@ -1160,9 +1160,26 @@ function removerLocais(ids, motivo){
   save();
   if(motivo==='repetida') toast(`Bipagem repetida (feita sem internet) removida: ${sai.map(r=>r.lote).join(', ')}. Mantida a mais antiga.`);
 }
+/* O administrador zerou os dados: apaga deste aparelho tudo o que é anterior ao "zerar" */
+function aplicarReset(reset, locaisTambem){
+  const antes = db.registros.length;
+  db.registros.filter(r=>r.ts < reset && r.temFoto).forEach(r=>fotoDel(r.id));
+  db.registros = db.registros.filter(r=>r.ts >= reset);
+  db.eventosCk = (db.eventosCk||[]).filter(e=>e.ts >= reset);
+  db.filaChecklist = db.filaChecklist.filter(c=>(c.ts||0) >= reset);
+  db.filaExcluir = [];
+  db.checklists = {};
+  Object.keys(db.etiquetas||{}).forEach(k=>{ if((db.etiquetas[k].em||0) < reset) delete db.etiquetas[k]; });
+  if(locaisTambem){ db.locais = []; db.localAtual = ''; db.filaLocais = db.filaLocais.filter(l=>(l.ts||0) >= reset); }
+  REMOTO = { registros:[], eventos:[], em:0 };
+  const primeiraVez = db.resetVisto === undefined;
+  db.resetVisto = reset; save();
+  if(!primeiraVez || antes) toast('O administrador zerou os dados de teste. O app foi limpo.');
+}
 async function baixar(){
   const desde = Date.now() - DIAS_HISTORICO*86400000;
   const j = await lerResposta(await fetch(db.planilha.url + '?acao=dados&desde=' + desde, { redirect:'follow' }));
+  if(j.reset && j.reset > (db.resetVisto||0)) aplicarReset(j.reset, j.resetLocais);
   // bipagens excluídas na planilha (por qualquer aparelho) saem também deste aparelho
   const excl = (j.registros||[]).filter(r=>String(r.situacao||'').indexOf('Excluída')===0);
   removerLocais(excl.filter(r=>!/repetida/i.test(r.situacao)).map(r=>r.id), 'excluida');
@@ -1342,9 +1359,25 @@ function telaUsuarios(lista){
     <div>${lista.map(u=>`<div class="urow"><div><b>${esc(u.nome)}</b> <span class="pill ${u.situacao==='Ativo'?'new':'fin'}">${esc(u.situacao)}</span>${u.perfil==='Administrador'?' <span class="pill mod">Admin</span>':''}<div class="small">${esc(u.usuario)} · cadastrado por ${esc(u.criadoPor)} em ${esc(u.criadoEm)}</div></div><div></div>
       <div class="actions"><button class="btn ghost sm" data-senha="${esc(u.usuario)}">Trocar senha</button><button class="btn ghost sm" data-sit="${esc(u.usuario)}">${u.situacao==='Ativo'?'Desativar':'Reativar'}</button></div></div>`).join('')}</div>
     <div id="aMsg"></div>
+    <div class="card" style="background:var(--bad-bg);border-color:var(--bad)"><h3 style="color:var(--bad)">Zerar dados de teste</h3>
+      <div class="small" style="color:var(--ink)">Apaga da planilha e de <b>todos os celulares</b>: bipagens, checklists, finalizados e repetidas. Os <b>usuários continuam</b>. Não dá para desfazer.</div>
+      <label class="small" style="display:flex;gap:8px;align-items:center;color:var(--ink)"><input type="checkbox" id="zLocais" style="width:20px;height:20px"> Apagar também os locais cadastrados</label>
+      <label class="f">Para confirmar, digite ZERAR<input type="text" id="zConf" autocomplete="off" autocapitalize="characters"></label>
+      <button class="btn danger" id="zBtn">Zerar dados</button></div>
     <button class="btn ghost" id="aFechar">Fechar</button>
   </div></div>`;
   $('#aFechar').onclick = () => { ADM = null; host.innerHTML=''; };
+  $('#zBtn').onclick = async () => {
+    if($('#zConf').value.trim().toUpperCase() !== 'ZERAR'){ toast('Digite ZERAR para confirmar.'); $('#zConf').focus(); return; }
+    $('#zBtn').disabled = true; $('#zBtn').textContent = 'Zerando…';
+    try{
+      const j = await chamarUsuarios({ op:'zerar', locais: $('#zLocais').checked });
+      const tot = Object.values(j.apagadas||{}).reduce((a,b)=>a+b,0);
+      ADM = null; host.innerHTML = '';
+      toast(`Dados zerados: ${tot} linha(s) apagada(s) da planilha.`);
+      await sincronizar(); render();
+    }catch(err){ $('#zBtn').disabled = false; $('#zBtn').textContent = 'Zerar dados'; $('#aMsg').innerHTML = `<div class="alert bad">${esc(err.message)}</div>`; }
+  };
   const exec = async (extra, ok) => { $('#aMsg').innerHTML = '<div class="small">Salvando…</div>';
     try{ const j = await chamarUsuarios(extra); telaUsuarios(j.usuarios); toast(ok); }catch(err){ $('#aMsg').innerHTML = `<div class="alert bad">${esc(err.message)}</div>`; } };
   $('#nuSalvar').onclick = () => exec({ op:'salvar', usuario:normUsr($('#nuUsuario').value), nome:$('#nuNome').value.trim(), senha:$('#nuSenha').value, perfil:$('#nuPerfil').value }, 'Usuário cadastrado');

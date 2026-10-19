@@ -1,5 +1,5 @@
 /**
- * Monitor de Antecâmara — banco de dados central na Planilha Google (versão 4: vários aparelhos, usuários e duplicadas offline)
+ * Monitor de Antecâmara — banco de dados central na Planilha Google (versão 5: zerar dados; vários aparelhos, usuários e duplicadas offline)
  * Cole em Extensões → Apps Script, salve e implante como "App da Web".
  * Abas: Bipagens · Checklists · Finalizados · Locais · Usuários · Log de usuários · Repetidas offline. Fotos dos pré-lotes vão para uma pasta no Google Drive.
  * Cada celular envia o que fez (POST) e baixa o que os outros fizeram (GET ?acao=dados).
@@ -85,6 +85,16 @@ function usuarios_(d) {
     const adm = conferir_(lista, d.admin && d.admin.usuario, d.admin && d.admin.senha);
     if (!adm || adm.perfil !== 'Administrador') return { ok: false, erro: 'Acesso negado: usuário ou senha de administrador inválidos.' };
     const alvo = normUsr_(d.usuario), u = lista.find(x => x.usuario === alvo);
+    if (d.op === 'zerar') {   // apaga bipagens, checklists, finalizados e repetidas (e, se pedido, locais). Usuários ficam.
+      const ss = SpreadsheetApp.getActiveSpreadsheet();
+      const abas = [ABA, 'Checklists', 'Finalizados', ABA_DUP].concat(d.locais ? ['Locais'] : []);
+      const apagadas = {};
+      abas.forEach(nome => { const sh2 = ss.getSheetByName(nome); if (!sh2) return; const n = sh2.getLastRow(); apagadas[nome] = Math.max(0, n - 1); if (n > 1) sh2.deleteRows(2, n - 1); });
+      const props = PropertiesService.getScriptProperties();
+      props.setProperty('RESET_TS', String(Date.now())); props.setProperty('RESET_LOCAIS', d.locais ? '1' : '0');
+      logUsr_('Dados zerados (' + Object.keys(apagadas).map(k => k + ': ' + apagadas[k]).join(', ') + ')', '-', adm.usuario);
+      return { ok: true, apagadas };
+    }
     if (d.op === 'salvar') {
       const senha = String(d.senha || '');
       if (!alvo || !/^[a-z0-9._-]{2,30}$/.test(alvo)) return { ok: false, erro: 'Usuário inválido: use letras, números, ponto, hífen ou sublinhado (sem espaços).' };
@@ -147,7 +157,7 @@ function resolverRepetidas_(sh, idsNovos) {
 
 function doGet(e) {
   const sh = abaCom_(ABA, CABECALHO);
-  if (!e || !e.parameter || e.parameter.acao !== 'dados') return resposta_({ ok: true, msg: 'Planilha conectada', versao: 4 });
+  if (!e || !e.parameter || e.parameter.acao !== 'dados') return resposta_({ ok: true, msg: 'Planilha conectada', versao: 5 });
   const desde = Number(e.parameter.desde || 0);
   const n = sh.getLastRow();
   const registros = [];
@@ -174,7 +184,8 @@ function doGet(e) {
   if (nl > 1) shl.getRange(2, 1, nl - 1, CAB_LOCAIS.length).getValues().forEach(v => {
     if (v[0]) locais.push({ id: String(v[0]), armazem: String(v[1]), posicao: String(v[2]), situacao: String(v[3] || 'Ativo') });
   });
-  return resposta_({ ok: true, registros, eventos, locais });
+  const props = PropertiesService.getScriptProperties();
+  return resposta_({ ok: true, registros, eventos, locais, reset: Number(props.getProperty('RESET_TS') || 0), resetLocais: props.getProperty('RESET_LOCAIS') === '1' });
 }
 
 function doPost(e) {
@@ -189,9 +200,11 @@ function doPost(e) {
     const pos = {};
     ids.forEach((id, i) => pos[id] = i + 2);
 
+    const resetTs = Number(PropertiesService.getScriptProperties().getProperty('RESET_TS') || 0);
     const recebidos = [], fotos = {}, novas = [];
     (dados.registros || []).forEach(r => {
       if (pos[r.id]) { recebidos.push(r.id); return; }   // já existe: não duplica
+      if (resetTs && Number(r.ts || 0) && Number(r.ts) < resetTs) { recebidos.push(r.id); return; }   // anterior ao "zerar dados": descarta
       let urlFoto = '';
       if (r.foto) {
         try {
@@ -233,6 +246,7 @@ function doPost(e) {
 
     const checklists = [];
     (dados.checklists || []).forEach(c => {
+      if (resetTs && Number(c.ts || 0) && Number(c.ts) < resetTs) { checklists.push(c.id); return; }   // anterior ao "zerar dados"
       const shc = abaCom_('Checklists', CAB_CHECK);
       const shf = abaCom_('Finalizados', CAB_FIN);
       const fin = c.finalizados || [];
@@ -267,7 +281,9 @@ function doPost(e) {
       const shl = abaCom_('Locais', CAB_LOCAIS), nl = shl.getLastRow();
       const lin = {};
       if (nl > 1) shl.getRange(2, 1, nl - 1, 1).getValues().forEach((v, i) => lin[String(v[0])] = i + 2);
+      const resetLoc = PropertiesService.getScriptProperties().getProperty('RESET_LOCAIS') === '1';
       dados.locais.forEach(l => {
+        if (resetTs && resetLoc && Number(l.ts || 0) < resetTs) { locaisOk.push(l.id + '|' + (l.situacao || 'Ativo')); return; }   // anterior ao "zerar dados"
         const row = [l.id, l.armazem || '', l.posicao || '', l.situacao || 'Ativo', new Date()];
         if (lin[l.id]) shl.getRange(lin[l.id], 1, 1, CAB_LOCAIS.length).setValues([row]);
         else { shl.appendRow(row); lin[l.id] = shl.getLastRow(); }
