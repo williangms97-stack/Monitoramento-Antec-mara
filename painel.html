@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f2a3d">
+<title>Painel das Antecâmaras</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: cabeçalho fixo + filtros em uma linha; números do dia; gráficos em grade 2×2; tabelas de detalhe embaixo */
+:root{
+  --bg:#eef3f6; --surface:#ffffff; --ink:#0f2a3d; --muted:#587080; --faint:#8aa0ad; --line:#d3dee6; --grid:#e4ebf0;
+  --accent:#0b6fa4; --accent-ink:#ffffff; --frost:#dcebf4;
+  --s1:#2a78d6; --s2:#eb6834;                       /* séries: Lote, Pré-lote (validadas) */
+  --q1:#86b6ef; --q2:#3987e5; --q3:#1c5cab; --q4:#0d366b;   /* tempo fora: rampa ordinal */
+  --ok:#1d7a4f; --warn:#b86a00; --bad:#b3261e; --ok-bg:#e1f3e9; --warn-bg:#fff2dc; --bad-bg:#fde7e5;
+  --f-ui:"IBM Plex Sans Condensed","Roboto Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-code:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0b1820; --surface:#12242f; --ink:#e3eef4; --muted:#8fa7b5; --faint:#6b8594; --line:#22394a; --grid:#1b3140;
+  --accent:#4fb0e3; --accent-ink:#06202e; --frost:#173244;
+  --s1:#3987e5; --s2:#d95926;
+  --q1:#86b6ef; --q2:#5598e7; --q3:#2a78d6; --q4:#1c5cab;
+  --ok:#5cc792; --warn:#f0a840; --bad:#ff7b72; --ok-bg:#12301f; --warn-bg:#33270f; --bad-bg:#3a1a18;
+  color-scheme:dark;
+}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:15px;line-height:1.4}
+button,input,select{font:inherit;color:inherit}
+[hidden]{display:none!important}
+header.top{position:sticky;top:0;z-index:20;background:var(--ink);color:var(--bg);
+  padding:calc(10px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px));
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+@media (prefers-color-scheme:dark){header.top{background:#061017;color:var(--ink)}}
+.brand{display:flex;flex-direction:column;line-height:1.1;margin-right:auto}
+.brand b{font-size:19px}
+.brand small{font-size:12px;opacity:.75;text-transform:uppercase;letter-spacing:.08em}
+.live{display:flex;align-items:center;gap:8px;font-size:13px}
+.dot{width:9px;height:9px;border-radius:50%;background:#5cc792;box-shadow:0 0 0 0 rgba(92,199,146,.6)}
+.dot.off{background:#ff7b72}
+.dot.busy{background:#f0a840}
+@media (prefers-reduced-motion:no-preference){.dot{animation:pulse 2s infinite}@keyframes pulse{70%{box-shadow:0 0 0 8px rgba(92,199,146,0)}100%{box-shadow:0 0 0 0 rgba(92,199,146,0)}}}
+.hbtn{border:1px solid currentColor;background:transparent;border-radius:6px;padding:5px 10px;font-weight:700;font-size:13px;cursor:pointer}
+main{max-width:1240px;margin:0 auto;padding:16px max(16px,env(safe-area-inset-right,0px)) 40px max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:16px}
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+.filters label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;flex:1 1 150px;max-width:240px}
+.filters input,.filters select{min-height:40px;border:1.5px solid var(--line);border-radius:8px;background:var(--surface);padding:6px 10px;font-size:15px;text-transform:none;letter-spacing:0;font-weight:500;color:var(--ink)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.kpi .n{font-family:var(--f-code);font-size:30px;font-weight:700;line-height:1}
+.kpi .t{font-size:13px;color:var(--muted)}
+.kpi .s{font-size:12px;color:var(--muted)}
+.kpi.warn{border-color:var(--warn);background:var(--warn-bg)}
+.kpi.bad{border-color:var(--bad);background:var(--bad-bg)}
+.kpi.ok{border-color:var(--ok);background:var(--ok-bg)}
+.kpi.bad .n{color:var(--bad)} .kpi.warn .n{color:var(--warn)} .kpi.ok .n{color:var(--ok)}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:820px){.grid2{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.card h2{font-size:16px;margin:0;text-wrap:balance}
+.card .sub{font-size:13px;color:var(--muted);margin-top:-6px}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+svg{display:block;width:100%;height:auto;overflow:visible}
+svg text{font-family:var(--f-ui);fill:var(--muted);font-size:12px}
+svg .val{fill:var(--ink);font-weight:600}
+svg .hit{fill:transparent;cursor:default}
+.tip{position:fixed;z-index:40;pointer-events:none;background:var(--ink);color:var(--bg);border-radius:8px;padding:8px 10px;font-size:13px;line-height:1.35;max-width:260px;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+.tip b{display:block;margin-bottom:2px}
+.tablewrap{overflow-x:auto;margin:0 -4px}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:640px}
+th,td{text-align:left;padding:8px 8px;border-bottom:1px solid var(--grid);white-space:nowrap}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;position:sticky;top:0;background:var(--surface)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+td.mono{font-family:var(--f-code);font-weight:700}
+tr.sev-bad td:first-child{box-shadow:inset 4px 0 0 var(--bad)}
+tr.sev-warn td:first-child{box-shadow:inset 4px 0 0 var(--warn)}
+.pill{display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:999px;text-transform:uppercase;letter-spacing:.05em}
+.pill.pre{background:#efe3fb;color:#6b2fa3}
+.pill.re{background:var(--warn-bg);color:var(--warn)}
+.pill.bad{background:var(--bad-bg);color:var(--bad)}
+.pill.ok{background:var(--ok-bg);color:var(--ok)}
+.pill.mut{background:var(--grid);color:var(--muted)}
+.empty{color:var(--muted);text-align:center;padding:18px;border:1.5px dashed var(--line);border-radius:10px}
+.note{font-size:13px;color:var(--muted)}
+.banner{border-radius:10px;padding:10px 12px;font-weight:600;background:var(--bad-bg);color:var(--bad);border:1px solid var(--bad)}
+/* login */
+.loginscr{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:16px}
+.loginbox{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px 18px;display:flex;flex-direction:column;gap:12px}
+.loginbox label{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.loginbox input{min-height:46px;border:1.5px solid var(--line);border-radius:8px;background:var(--bg);padding:8px 12px;font-size:17px;text-transform:none;letter-spacing:0;color:var(--ink)}
+.btn{min-height:48px;border:0;border-radius:8px;padding:10px 16px;font-weight:700;font-size:16px;background:var(--accent);color:var(--accent-ink);cursor:pointer}
+.alert{border-radius:8px;padding:10px 12px;font-size:14px;background:var(--bad-bg);color:var(--bad);border:1px solid var(--bad)}
+input:focus,select:focus,button:focus-visible{outline:3px solid var(--accent);outline-offset:1px}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><b>Painel das Antecâmaras</b><small>Monitoramento de lotes · tempo real</small></div>
+  <div class="live" id="live"><span class="dot busy" id="dot"></span><span id="liveTxt">Conectando…</span></div>
+  <button class="hbtn" id="btnAtualizar">Atualizar</button>
+  <button class="hbtn" id="btnSair" hidden>Sair</button>
+</header>
+
+<main id="main" hidden>
+  <div class="banner" id="erro" hidden></div>
+  <div class="filters">
+    <label>Dia<input type="date" id="fDia"></label>
+    <label>Empresa<select id="fEmp"><option value="">Todas</option><option>Basf</option><option>Dois Marcos</option><option>Terceiro</option></select></label>
+    <label>Tipo<select id="fTipo"><option value="">Lotes e pré-lotes</option><option>Lote</option><option>Pré-lote</option></select></label>
+    <label>Local<select id="fLocal"><option value="">Todos</option></select></label>
+  </div>
+
+  <section class="kpis" id="kpis" aria-label="Números do dia"></section>
+
+  <div class="grid2">
+    <section class="card"><h2>Bipagens por dia</h2><div class="sub">Últimos 14 dias até o dia escolhido</div>
+      <div class="legend"><span><i style="background:var(--s1)"></i>Lote</span><span><i style="background:var(--s2)"></i>Pré-lote</span></div>
+      <div id="chDias"></div></section>
+    <section class="card"><h2>Ativos por tempo fora da câmara fria</h2><div class="sub">Lotes e pré-lotes ainda não finalizados, contados até agora</div>
+      <div id="chFora"></div></section>
+    <section class="card"><h2>Bipagens por usuário</h2><div class="sub" id="subUsr">No dia escolhido</div><div id="chUsr"></div></section>
+    <section class="card"><h2>Ativos por local</h2><div class="sub">Último local em que cada lote ativo foi bipado</div><div id="chLoc"></div></section>
+  </div>
+
+  <section class="card"><h2>Lotes ativos fora da câmara fria</h2><div class="sub">Ordenados pelo maior tempo fora. Faixa vermelha: acima de 48 h · laranja: acima de 24 h</div>
+    <div class="tablewrap" id="tbAtivos"></div></section>
+  <section class="card"><h2>Bipagens do dia</h2><div class="sub" id="subBip"></div><div class="tablewrap" id="tbBip"></div></section>
+  <section class="card"><h2>Finalizados</h2><div class="sub">Lotes finalizados nos checklists dos últimos 7 dias até o dia escolhido</div><div class="tablewrap" id="tbFin"></div></section>
+  <div class="note" id="rodape"></div>
+</main>
+
+<div class="loginscr" id="loginScr">
+  <form class="loginbox" id="loginForm">
+    <h2 style="margin:0">Painel das Antecâmaras</h2>
+    <div class="note">Entre com o mesmo usuário e senha do app de bipagem.</div>
+    <label>Usuário<input type="text" id="lgUsuario" autocomplete="username" autocapitalize="none" spellcheck="false"></label>
+    <label>Senha<input type="password" id="lgSenha" autocomplete="current-password"></label>
+    <div id="lgMsg"></div>
+    <button class="btn" type="submit" id="lgBtn">Entrar</button>
+  </form>
+</div>
+<div class="tip" id="tip" hidden></div>
+
+<script>
+/* Painel: lê os dados da Planilha Google (mesmo App da Web do app de bipagem) e recalcula as regras:
+   reincidência de um dia para o outro, checklist do dia finaliza os não encontrados, empresa pelo lote. */
+const URL_PLANILHA = 'https://script.google.com/macros/s/AKfycbxfrmR8yXzSTXDnWNHwtIklFgmNSjOqS4gsG__Mr4OSRb1C2GkJ9mvPUR5Y2iJzxRYL/exec';
+const ATUALIZA_MS = 60000, DIAS_HISTORICO = 90;
+const $ = s => document.querySelector(s);
+const esc = s => String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad = n => String(n).padStart(2,'0');
+const dkey = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const hora = d => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const br = k => { const [y,m,d] = k.split('-'); return `${d}/${m}/${y}`; };
+const brc = k => br(k).slice(0,5);
+const hoje = () => dkey(new Date());
+const diasEntre = (a,b) => Math.round((new Date(b+'T12:00')-new Date(a+'T12:00'))/86400000);
+function dur(ms){ if(!ms||ms<0) return '0h 00m'; const m=Math.floor(ms/60000), d=Math.floor(m/1440), h=Math.floor((m%1440)/60); return (d?d+'d ':'')+h+'h '+pad(m%60)+'m'; }
+const tsDe = (data, hr) => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(data||''); return m ? new Date(`${m[3]}-${m[2]}-${m[1]}T${(hr||'00:00:00').slice(0,8)}`).getTime() : 0; };
+function empresaDoLote(l){ l = String(l||'').toUpperCase(); if(l.substr(1,3)==='WML') return 'Basf'; if(l.substr(2,2)==='DM') return 'Dois Marcos'; return 'Terceiro'; }
+const chave = (t,l) => (t==='Pré-lote'?'P:':'L:') + String(l).toUpperCase();
+
+/* ---------- sessão (mesmo login do app) ---------- */
+let SESSAO = null;
+try{ SESSAO = JSON.parse(sessionStorage.getItem('painelSessao')||'null'); }catch(e){}
+async function post(body){
+  const r = await fetch(URL_PLANILHA, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(body), redirect:'follow' });
+  const j = JSON.parse(await r.text()); if(!j.ok) throw new Error(j.erro||'Erro na planilha'); return j;
+}
+$('#loginForm').onsubmit = async e => {
+  e.preventDefault();
+  const usuario = $('#lgUsuario').value.trim().toLowerCase(), senha = $('#lgSenha').value;
+  if(!usuario || !senha){ $('#lgMsg').innerHTML = '<div class="alert">Informe usuário e senha.</div>'; return; }
+  $('#lgBtn').disabled = true; $('#lgBtn').textContent = 'Entrando…';
+  try{
+    const j = await post({ acao:'login', usuario, senha, aparelho:'Painel' });
+    SESSAO = { usuario, nome:j.usuario.nome, perfil:j.usuario.perfil };
+    try{ sessionStorage.setItem('painelSessao', JSON.stringify(SESSAO)); }catch(e){}
+    iniciar();
+  }catch(err){ $('#lgMsg').innerHTML = `<div class="alert">${esc(/fetch|Failed/i.test(err.message)?'Sem conexão com a planilha. Verifique a internet.':err.message)}</div>`; }
+  finally{ $('#lgBtn').disabled = false; $('#lgBtn').textContent = 'Entrar'; }
+};
+$('#btnSair').onclick = () => { try{ sessionStorage.removeItem('painelSessao'); }catch(e){} location.reload(); };
+
+/* ---------- dados ---------- */
+let DADOS = null, SEQ = [], CK = {}, REGS = [], ultimo = 0, carregando = false;
+async function carregar(){
+  if(carregando) return; carregando = true;
+  $('#dot').className = 'dot busy'; $('#liveTxt').textContent = 'Atualizando…';
+  try{
+    const r = await fetch(URL_PLANILHA + '?acao=dados&desde=' + (Date.now()-DIAS_HISTORICO*86400000), { redirect:'follow' });
+    const j = JSON.parse(await r.text()); if(!j.ok) throw new Error(j.erro||'Erro na planilha');
+    DADOS = j; ultimo = Date.now(); $('#erro').hidden = true;
+    processar(); render();
+  }catch(err){
+    $('#erro').hidden = false; $('#erro').textContent = 'Não foi possível atualizar agora (' + (err.message||err) + '). Os números mostram a última leitura e uma nova tentativa ocorre em 1 minuto.';
+  }
+  carregando = false; status();
+}
+function status(){
+  const ok = DADOS && Date.now()-ultimo < ATUALIZA_MS*2.5 && $('#erro').hidden;
+  $('#dot').className = 'dot' + (ok ? '' : ' off');
+  $('#liveTxt').textContent = ultimo ? `Atualizado às ${hora(new Date(ultimo))}:${pad(new Date(ultimo).getSeconds())} · a cada 1 min` : 'Sem dados';
+}
+function processar(){
+  REGS = (DADOS.registros||[]).filter(r=>String(r.situacao||'').indexOf('Excluída')!==0).map(r=>{
+    const ts = Number(r.ts) || tsDe(r.data, r.hora), d = new Date(ts), tipo = r.tipo||'Lote', lote = String(r.lote||'').toUpperCase();
+    return { id:r.id, ts, data:dkey(d), hora:hora(d), tipo, lote, empresa: tipo==='Pré-lote' ? '' : empresaDoLote(lote), local:r.local||'', usuario:r.aparelho||'', dados:r.dados };
+  }).filter(r=>r.ts && r.lote).sort((a,b)=>a.ts-b.ts);
+  // checklist válido de cada dia = último evento (Concluído / Reaberto)
+  const ult = {}; (DADOS.eventos||[]).forEach(e=>{ const t = Number(e.ts); if(!ult[e.data] || t > ult[e.data].ts) ult[e.data] = { ...e, ts:t }; });
+  CK = {}; Object.values(ult).forEach(e=>{ if(e.acao==='Concluído') CK[e.data] = e; });
+  // sequências: mesmas regras do app
+  const porDia = {}; REGS.forEach(r=>(porDia[r.data] = porDia[r.data]||[]).push(r));
+  const dias = [...new Set([...Object.keys(porDia), ...Object.keys(CK)])].sort();
+  const EST = {}; SEQ = [];
+  for(const d of dias){
+    const posDia = {};
+    for(const r of (porDia[d]||[])){
+      const k = chave(r.tipo, r.lote); let s = EST[k];
+      if(!s || s.final){ s = EST[k] = { k, lote:r.lote, tipo:r.tipo, empresa:r.empresa, start:r.ts, startData:d, final:null, regs:[] }; SEQ.push(s); }
+      s.regs.push(r); s.last = r; posDia[k] = (posDia[k]||0)+1;
+      r.posDia = posDia[k]; r.inicio = s.start; r.fora = r.ts - s.start; r.diaSeq = diasEntre(s.startData, d)+1; r.reincidente = d > s.startData;
+    }
+    if(CK[d]) Object.values(EST).forEach(s=>{ if(!s.final && s.last.data < d) s.final = { data:d, ts:CK[d].ts, por:CK[d].aparelho }; });
+  }
+  // lista de locais para o filtro
+  const locs = [...new Set(REGS.map(r=>r.local).filter(Boolean))].sort();
+  const sel = $('#fLocal'), atual = sel.value;
+  sel.innerHTML = '<option value="">Todos</option>' + locs.map(l=>`<option ${l===atual?'selected':''}>${esc(l)}</option>`).join('');
+}
+
+/* ---------- filtros ---------- */
+const F = () => ({ dia:$('#fDia').value || hoje(), emp:$('#fEmp').value, tipo:$('#fTipo').value, local:$('#fLocal').value });
+const passa = (x, f, comLocal=true) => (!f.emp || x.empresa===f.emp) && (!f.tipo || x.tipo===f.tipo) && (!comLocal || !f.local || (x.local||x.last&&x.last.local)===f.local);
+['#fDia','#fEmp','#fTipo','#fLocal'].forEach(id=>$(id).addEventListener('change', render));
+
+/* ---------- desenho ---------- */
+function render(){
+  if(!DADOS) return;
+  const f = F(), agora = Date.now();
+  const bipDia = REGS.filter(r=>r.data===f.dia && passa(r,f));
+  const ativos = SEQ.filter(s=>!s.final && passa(s,f,false) && (!f.local || s.last.local===f.local));
+  const reinc = new Set(bipDia.filter(r=>r.reincidente).map(r=>chave(r.tipo,r.lote)));
+  const acima24 = ativos.filter(s=>agora-s.start >= 86400000).length;
+  const fin = SEQ.filter(s=>s.final && s.final.data===f.dia && passa(s,f,false));
+  const ck = CK[f.dia];
+  const pend = SEQ.filter(s=>!s.final && s.last.data < f.dia && s.startData <= f.dia && passa(s,f,false)).length;
+  const tile = (n,t,s,cls='') => `<div class="kpi ${cls}"><div class="n">${n}</div><div class="t">${t}</div>${s?`<div class="s">${s}</div>`:''}</div>`;
+  $('#kpis').innerHTML =
+    tile(bipDia.length, 'Bipagens no dia', br(f.dia)) +
+    tile(new Set(bipDia.map(r=>chave(r.tipo,r.lote))).size, 'Lotes e pré-lotes no dia', `${new Set(bipDia.filter(r=>r.tipo==='Pré-lote').map(r=>r.lote)).size} pré-lote(s)`) +
+    tile(ativos.length, 'Ativos fora da câmara', 'agora') +
+    tile(reinc.size, 'Reincidentes no dia', 'bipados de novo após o 1º dia', reinc.size?'warn':'') +
+    tile(acima24, 'Acima de 24 h fora', '▲ atenção', acima24?'bad':'') +
+    (ck ? tile('✓', 'Checklist concluído', `${hora(new Date(Number(ck.ts)))}${ck.aparelho?' · '+esc(ck.aparelho):''} · ${fin.length} finalizado(s)`, 'ok')
+        : tile(f.dia===hoje()?pend:'—', 'Checklist pendente', f.dia===hoje()?'ativos ainda não encontrados hoje':'checklist não concluído neste dia', pend?'warn':''));
+
+  // gráfico 1: bipagens por dia (barras empilhadas Lote / Pré-lote)
+  const dias = []; for(let i=13;i>=0;i--){ const d = new Date(f.dia+'T12:00'); d.setDate(d.getDate()-i); dias.push(dkey(d)); }
+  const porDia = dias.map(d=>{ const rs = REGS.filter(r=>r.data===d && passa(r,f)); return { d, lote:rs.filter(r=>r.tipo==='Lote').length, pre:rs.filter(r=>r.tipo==='Pré-lote').length }; });
+  $('#chDias').innerHTML = barrasEmpilhadas(porDia, larg('#chDias'));
+
+  // gráfico 2: ativos por faixa de tempo fora
+  const faixas = [['Até 24 h',0,24,'--q1'],['24–48 h',24,48,'--q2'],['48–72 h',48,72,'--q3'],['Mais de 72 h',72,1e9,'--q4']]
+    .map(([n,a,b,c])=>({ n, c, v: ativos.filter(s=>{ const h=(agora-s.start)/3600000; return h>=a && h<b; }).length }));
+  $('#chFora').innerHTML = barrasVerticais(faixas, larg('#chFora'));
+
+  // gráfico 3 e 4: barras horizontais
+  const cont = (arr, fn) => { const m = new Map(); arr.forEach(x=>{ const k = fn(x)||'(sem nome)'; m.set(k,(m.get(k)||0)+1); }); return [...m].map(([n,v])=>({n,v})).sort((a,b)=>b.v-a.v); };
+  $('#subUsr').textContent = 'No dia ' + br(f.dia);
+  $('#chUsr').innerHTML = barrasHorizontais(cont(bipDia, r=>r.usuario), 'bipagem(ns)', larg('#chUsr'));
+  $('#chLoc').innerHTML = barrasHorizontais(cont(ativos, s=>s.last.local), 'lote(s) ativo(s)', larg('#chLoc'));
+
+  // tabelas
+  const ativosOrd = ativos.slice().sort((a,b)=>a.start-b.start);
+  $('#tbAtivos').innerHTML = ativosOrd.length ? `<table><thead><tr><th>Tipo</th><th>Lote / pré-lote</th><th>Empresa</th><th>Início</th><th class="num">Dia</th><th>Último local</th><th>Última bipagem</th><th>Usuário</th><th class="num">Tempo fora</th></tr></thead><tbody>${
+    ativosOrd.map(s=>{ const h=(agora-s.start)/3600000; return `<tr class="${h>=48?'sev-bad':h>=24?'sev-warn':''}"><td>${s.tipo==='Pré-lote'?'<span class="pill pre">Pré-lote</span>':'Lote'}</td><td class="mono">${esc(s.lote)}</td><td>${esc(s.empresa||'—')}</td><td>${brc(s.startData)} ${hora(new Date(s.start))}</td><td class="num">${diasEntre(s.startData,hoje())+1}</td><td>${esc(s.last.local)}</td><td>${brc(s.last.data)} ${s.last.hora}</td><td>${esc(s.last.usuario)}</td><td class="num"><b>${dur(agora-s.start)}</b></td></tr>`; }).join('')
+  }</tbody></table>` : '<div class="empty">Nenhum lote ativo fora da câmara fria com os filtros escolhidos.</div>';
+
+  $('#subBip').textContent = `${br(f.dia)} · ${bipDia.length} bipagem(ns), da mais recente para a mais antiga`;
+  $('#tbBip').innerHTML = bipDia.length ? `<table><thead><tr><th>Hora</th><th>Tipo</th><th>Lote / pré-lote</th><th>Empresa</th><th>Local</th><th>Usuário</th><th>Situação</th><th class="num">Tempo fora</th></tr></thead><tbody>${
+    bipDia.slice().reverse().map(r=>`<tr><td class="num">${r.hora}</td><td>${r.tipo==='Pré-lote'?'<span class="pill pre">Pré-lote</span>':'Lote'}</td><td class="mono">${esc(r.lote)}</td><td>${esc(r.empresa||'—')}</td><td>${esc(r.local)}</td><td>${esc(r.usuario)}</td><td>${
+      r.reincidente ? `<span class="pill ${r.fora>=86400000?'bad':'re'}">Reincidente · dia ${r.diaSeq}</span>` : r.posDia>1 ? `<span class="pill mut">Mesmo dia · ${r.posDia}ª posição</span>` : '<span class="pill ok">1ª bipagem</span>'
+    }</td><td class="num">${r.reincidente?dur(r.fora):'—'}</td></tr>`).join('')
+  }</tbody></table>` : '<div class="empty">Nenhuma bipagem neste dia com os filtros escolhidos.</div>';
+
+  const de = new Date(f.dia+'T12:00'); de.setDate(de.getDate()-6); const deK = dkey(de);
+  const fins = SEQ.filter(s=>s.final && s.final.data>=deK && s.final.data<=f.dia && passa(s,f,false) && (!f.local || s.last.local===f.local)).sort((a,b)=>b.final.ts-a.final.ts);
+  $('#tbFin').innerHTML = fins.length ? `<table><thead><tr><th>Finalizado em</th><th>Tipo</th><th>Lote / pré-lote</th><th>Empresa</th><th>Primeira bipagem</th><th>Última bipagem</th><th>Último local</th><th class="num">Tempo fora</th></tr></thead><tbody>${
+    fins.map(s=>`<tr><td>${br(s.final.data)}</td><td>${s.tipo==='Pré-lote'?'<span class="pill pre">Pré-lote</span>':'Lote'}</td><td class="mono">${esc(s.lote)}</td><td>${esc(s.empresa||'—')}</td><td>${brc(s.startData)} ${hora(new Date(s.start))}</td><td>${brc(s.last.data)} ${s.last.hora}</td><td>${esc(s.last.local)}</td><td class="num">${dur(s.last.ts-s.start)}</td></tr>`).join('')
+  }</tbody></table>` : '<div class="empty">Nenhum lote finalizado nesse período.</div>';
+
+  $('#rodape').textContent = `Fonte: Planilha "Monitoramento Antecâmara" · ${REGS.length} bipagens válidas nos últimos ${DIAS_HISTORICO} dias · ${(DADOS.locais||[]).filter(l=>l.situacao!=='Removido').length} locais cadastrados.`;
+  ligarTooltips();
+}
+
+/* ---------- gráficos (SVG simples, escala única, valores reais) ---------- */
+const niceMax = v => { if(v<=4) return 4; const p = Math.pow(10, Math.floor(Math.log10(v))); let m = 10*p; for(const k of [1,2,2.5,5,10]) if(k*p >= v){ m = k*p; break; } return Math.ceil(m/4)*4; };   // 4 divisões inteiras
+const rr = (x,y,w,h,r) => { r = Math.min(r, w/2, h); return `M${x},${y+h}V${y+r}Q${x},${y} ${x+r},${y}H${x+w-r}Q${x+w},${y} ${x+w},${y+r}V${y+h}Z`; };
+function eixoY(max, W, H, L, T){
+  let s=''; for(let i=0;i<=4;i++){ const v=max*i/4, y=T+H-H*i/4;
+    s += `<line x1="${L}" x2="${W}" y1="${y}" y2="${y}" stroke="var(--${i?'grid':'line'})" stroke-width="1"/><text x="${L-6}" y="${y+4}" text-anchor="end">${Math.round(v)}</text>`; }
+  return s;
+}
+const larg = id => Math.max(300, Math.round(($(id) && $(id).clientWidth) || 560));
+function barrasEmpilhadas(dados, W){
+  const H=190, L=34, T=12, B=26, n=dados.length, total=dados.map(d=>d.lote+d.pre);
+  const max = niceMax(Math.max(1,...total)), pw=(W-L)/n, bw=Math.min(24, pw*0.62);
+  let s = `<svg viewBox="0 0 ${W} ${H+T+B}" role="img" aria-label="Bipagens por dia nos últimos 14 dias">` + eixoY(max,W,H,L,T);
+  dados.forEach((d,i)=>{
+    const x = L + pw*i + (pw-bw)/2, hl = H*d.lote/max, hp = H*d.pre/max, base = T+H;
+    if(d.lote) s += `<path d="${d.pre? `M${x},${base}V${base-hl}H${x+bw}V${base}Z` : rr(x,base-hl,bw,hl,4)}" fill="var(--s1)"/>`;
+    if(d.pre) s += `<path d="${rr(x,base-hl-hp-(d.lote?2:0),bw,hp,4)}" fill="var(--s2)"/>`;
+    const passo = W < 480 ? 3 : 2;
+    const lbl = ((n-1-i)%passo===0) ? `<text x="${x+bw/2}" y="${T+H+17}" text-anchor="middle">${brc(d.d)}</text>` : '';
+    s += lbl + `<rect class="hit" x="${L+pw*i}" y="${T}" width="${pw}" height="${H}" data-tip="<b>${br(d.d)}</b>Lote: ${d.lote}<br>Pré-lote: ${d.pre}<br>Total: ${d.lote+d.pre}"/>`;
+    if(i===n-1 && total[i]) s += `<text class="val" x="${x+bw/2}" y="${T+H-H*total[i]/max-6}" text-anchor="middle">${total[i]}</text>`;
+  });
+  return s + '</svg>';
+}
+function barrasVerticais(dados, W){
+  const H=190, L=34, T=16, B=26, n=dados.length, max=niceMax(Math.max(1,...dados.map(d=>d.v))), pw=(W-L)/n, bw=Math.min(70,pw*0.55);
+  let s = `<svg viewBox="0 0 ${W} ${H+T+B}" role="img" aria-label="Ativos por tempo fora">` + eixoY(max,W,H,L,T);
+  dados.forEach((d,i)=>{ const x=L+pw*i+(pw-bw)/2, h=H*d.v/max;
+    if(d.v) s += `<path d="${rr(x,T+H-h,bw,h,4)}" fill="var(${d.c})"/>`;
+    s += `<text class="val" x="${x+bw/2}" y="${T+H-h-6}" text-anchor="middle">${d.v}</text><text x="${x+bw/2}" y="${T+H+17}" text-anchor="middle">${d.n}</text>
+      <rect class="hit" x="${L+pw*i}" y="${T}" width="${pw}" height="${H}" data-tip="<b>${d.n} fora da câmara</b>${d.v} lote(s)/pré-lote(s)"/>`; });
+  return s + '</svg>';
+}
+function barrasHorizontais(dados, unid, W){
+  if(!dados.length) return '<div class="empty">Sem dados com os filtros escolhidos.</div>';
+  const top = dados.slice(0,8), resto = dados.slice(8).reduce((a,d)=>a+d.v,0); if(resto) top.push({ n:'Outros', v:resto });
+  const rh=30, L=Math.min(260, Math.round(W*0.42)), R=40, maxc=Math.floor((L-10)/6.6), max=Math.max(...top.map(d=>d.v)), H=top.length*rh;
+  let s = `<svg viewBox="0 0 ${W} ${H+4}" role="img" aria-label="Contagem por categoria">`;
+  top.forEach((d,i)=>{ const y=i*rh+6, w=(W-L-R)*d.v/max, nome = d.n.length>maxc ? '…'+d.n.slice(-(maxc-1)) : d.n;   // corta o início (o fim do nome do local é o que diferencia)
+    s += `<text x="${L-8}" y="${y+13}" text-anchor="end" style="fill:var(--ink)">${esc(nome)}</text>
+      <path d="M${L},${y}H${L+Math.max(w,2)-4}Q${L+Math.max(w,2)},${y} ${L+Math.max(w,2)},${y+4}V${y+14}Q${L+Math.max(w,2)},${y+18} ${L+Math.max(w,2)-4},${y+18}H${L}Z" fill="var(--s1)"/>
+      <text class="val" x="${L+w+6}" y="${y+13}">${d.v}</text>
+      <rect class="hit" x="0" y="${i*rh}" width="${W}" height="${rh}" data-tip="<b>${esc(d.n)}</b>${d.v} ${unid}"/>`; });
+  return s + `<line x1="${L}" x2="${L}" y1="0" y2="${H}" stroke="var(--line)"/></svg>`;
+}
+function ligarTooltips(){
+  const tip = $('#tip');
+  document.querySelectorAll('.hit').forEach(el=>{
+    const mostrar = e => { tip.innerHTML = el.dataset.tip; tip.hidden = false; const p = e.touches ? e.touches[0] : e;
+      const x = Math.min(p.clientX + 14, innerWidth - tip.offsetWidth - 8), y = Math.max(8, p.clientY - tip.offsetHeight - 12); tip.style.left = x+'px'; tip.style.top = y+'px';
+      el.parentNode.querySelectorAll('.hit').forEach(h=>h.style.fill='transparent'); el.style.fill='rgba(127,127,127,.08)'; };
+    el.onmousemove = mostrar; el.ontouchstart = mostrar;
+    el.onmouseleave = () => { tip.hidden = true; el.style.fill='transparent'; };
+  });
+}
+document.addEventListener('touchstart', e=>{ if(!e.target.classList || !e.target.classList.contains('hit')) $('#tip').hidden = true; }, { passive:true });
+
+/* ---------- início ---------- */
+$('#fDia').value = hoje();
+let rz; addEventListener('resize', ()=>{ clearTimeout(rz); rz = setTimeout(render, 200); });
+$('#btnAtualizar').onclick = carregar;
+let timer = null;
+function iniciar(){
+  $('#loginScr').hidden = true; $('#main').hidden = false; $('#btnSair').hidden = false;
+  $('#btnSair').textContent = 'Sair (' + SESSAO.nome.split(' ')[0] + ')';
+  carregar(); clearInterval(timer); timer = setInterval(()=>{ if(!document.hidden) carregar(); else status(); }, ATUALIZA_MS);
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden && Date.now()-ultimo > ATUALIZA_MS) carregar(); });
+}
+if(SESSAO) iniciar(); else setTimeout(()=>$('#lgUsuario').focus(), 50);
+</script>
+</body>
+</html>

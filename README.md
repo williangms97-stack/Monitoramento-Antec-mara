@@ -4,7 +4,8 @@ App web para celular que monitora diariamente os lotes e pré-lotes nas antecâm
 Cada bipagem registra data, hora e local. O app calcula a reincidência e o tempo fora da câmara fria, e grava tudo
 numa Planilha Google que funciona como banco de dados central para vários aparelhos.
 
-- **App em produção:** https://bright-cupcake-ccc719.netlify.app
+- **App:** https://williangms97-stack.github.io/Monitoramento-Antec-mara/
+- **Painel:** https://williangms97-stack.github.io/Monitoramento-Antec-mara/painel.html
 - **Banco de dados:** Planilha Google "Monitoramento Antecâmara" (Apps Script publicado como App da Web)
 
 ## Estrutura
@@ -12,6 +13,7 @@ numa Planilha Google que funciona como banco de dados central para vários apare
 | Arquivo | O que é |
 |---|---|
 | `index.html` | O app inteiro (HTML, CSS e JavaScript em um arquivo). É o que vai para o Netlify. |
+| `painel.html` | Painel em tempo real (números do dia, gráficos, lotes ativos), lido da planilha a cada minuto. Mesmo login do app. |
 | `apps-script/Codigo.gs` | Script da Planilha Google: recebe as bipagens (POST) e devolve os dados dos outros aparelhos (GET `?acao=dados`). |
 
 ## Regras de negócio
