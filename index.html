@@ -286,7 +286,7 @@ nav.tabs button.scan svg{color:var(--accent-ink)}
     <label class="f" id="lgSenha2Box" hidden>Repita a senha<input type="password" id="lgSenha2" autocomplete="new-password"></label>
     <div id="lgMsg"></div>
     <button class="btn" type="submit" id="lgBtn">Entrar</button>
-    <div class="small" style="text-align:center">Versão 2026.10.19b · zerar dados</div>
+    <div class="small" style="text-align:center">Versão 2026.10.19c · zerar dados</div>
   </form>
 </div>
 
@@ -1372,6 +1372,7 @@ function telaUsuarios(lista){
     $('#zBtn').disabled = true; $('#zBtn').textContent = 'Zerando…';
     try{
       const j = await chamarUsuarios({ op:'zerar', locais: $('#zLocais').checked });
+      if(!j.apagadas) throw new Error('A planilha ainda está com o script antigo e NÃO apagou nada. Atualize o script da planilha para a versão 5 (Implantar → Gerenciar implantações → ✏️ → Nova versão) e tente de novo.');
       const tot = Object.values(j.apagadas||{}).reduce((a,b)=>a+b,0);
       ADM = null; host.innerHTML = '';
       toast(`Dados zerados: ${tot} linha(s) apagada(s) da planilha.`);
