@@ -147,7 +147,7 @@ function resolverRepetidas_(sh, idsNovos) {
 
 function doGet(e) {
   const sh = abaCom_(ABA, CABECALHO);
-  if (!e || !e.parameter || e.parameter.acao !== 'dados') return resposta_({ ok: true, msg: 'Planilha conectada' });
+  if (!e || !e.parameter || e.parameter.acao !== 'dados') return resposta_({ ok: true, msg: 'Planilha conectada', versao: 4 });
   const desde = Number(e.parameter.desde || 0);
   const n = sh.getLastRow();
   const registros = [];
