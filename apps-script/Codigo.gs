@@ -177,7 +177,9 @@ function doGet(e) {
   const eventos = [];
   const shc = abaCom_('Checklists', CAB_CHECK), nc = shc.getLastRow();
   if (nc > 1) shc.getRange(2, 1, nc - 1, CAB_CHECK.length).getValues().forEach(v => {
-    if (v[8] && v[9]) eventos.push({ id: String(v[8]), ts: Number(v[9]), data: String(v[10]), acao: String(v[2]), aparelho: String(v[3]) });
+    if (v[8] && v[9]) eventos.push({ id: String(v[8]), ts: Number(v[9]),
+      data: v[10] instanceof Date ? Utilities.formatDate(v[10], Session.getScriptTimeZone(), 'yyyy-MM-dd') : String(v[10]),   // a planilha pode converter o "Dia" em data
+      acao: String(v[2]), aparelho: String(v[3]) });
   });
   const locais = [];
   const shl = abaCom_('Locais', CAB_LOCAIS), nl = shl.getLastRow();

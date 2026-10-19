@@ -213,7 +213,8 @@ function processar(){
     return { id:r.id, ts, data:dkey(d), hora:hora(d), tipo, lote, empresa: tipo==='Pré-lote' ? '' : empresaDoLote(lote), local:r.local||'', usuario:r.aparelho||'', dados:r.dados };
   }).filter(r=>r.ts && r.lote).sort((a,b)=>a.ts-b.ts);
   // checklist válido de cada dia = último evento (Concluído / Reaberto)
-  const ult = {}; (DADOS.eventos||[]).forEach(e=>{ const t = Number(e.ts); if(!ult[e.data] || t > ult[e.data].ts) ult[e.data] = { ...e, ts:t }; });
+  const diaOk = (d, ts) => /^\d{4}-\d{2}-\d{2}$/.test(String(d||'')) ? String(d) : dkey(new Date(Number(ts)));   // a planilha às vezes converte em data
+  const ult = {}; (DADOS.eventos||[]).filter(e=>Number(e.ts)).forEach(e=>{ const t = Number(e.ts), d = diaOk(e.data, t); if(!ult[d] || t > ult[d].ts) ult[d] = { ...e, data:d, ts:t }; });
   CK = {}; Object.values(ult).forEach(e=>{ if(e.acao==='Concluído') CK[e.data] = e; });
   // sequências: mesmas regras do app
   const porDia = {}; REGS.forEach(r=>(porDia[r.data] = porDia[r.data]||[]).push(r));

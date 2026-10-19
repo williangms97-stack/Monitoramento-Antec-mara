@@ -286,7 +286,7 @@ nav.tabs button.scan svg{color:var(--accent-ink)}
     <label class="f" id="lgSenha2Box" hidden>Repita a senha<input type="password" id="lgSenha2" autocomplete="new-password"></label>
     <div id="lgMsg"></div>
     <button class="btn" type="submit" id="lgBtn">Entrar</button>
-    <div class="small" style="text-align:center">Versão 2026.10.19c · zerar dados</div>
+    <div class="small" style="text-align:center">Versão 2026.10.19d</div>
   </form>
 </div>
 
@@ -399,7 +399,7 @@ function todos(){
 }
 /* Checklist válido de cada dia: o último evento (Concluído/Reaberto) de qualquer aparelho */
 function calcularChecklists(){
-  const ev = new Map(); REMOTO.eventos.concat(db.eventosCk).forEach(e=>ev.set(e.id, e));
+  const ev = new Map(); REMOTO.eventos.concat(db.eventosCk).forEach(e=>{ if(e && e.ts) ev.set(e.id, { ...e, data: diaValido(e.data, e.ts) }); });
   const ult = {}; [...ev.values()].forEach(e=>{ if(!ult[e.data] || e.ts > ult[e.data].ts) ult[e.data] = e; });
   CK = {}; Object.values(ult).forEach(e=>{ if(e.acao==='Concluído') CK[e.data] = e; });
 }
@@ -1160,6 +1160,9 @@ function removerLocais(ids, motivo){
   save();
   if(motivo==='repetida') toast(`Bipagem repetida (feita sem internet) removida: ${sai.map(r=>r.lote).join(', ')}. Mantida a mais antiga.`);
 }
+/* Dia do checklist sempre no formato AAAA-MM-DD. A planilha às vezes converte a coluna "Dia" em data;
+   nesse caso (ou se vier vazio/estranho) o dia é tirado do horário do evento. */
+function diaValido(d, ts){ return /^\d{4}-\d{2}-\d{2}$/.test(String(d||'')) ? String(d) : dkey(new Date(Number(ts))); }
 /* O administrador zerou os dados: apaga deste aparelho tudo o que é anterior ao "zerar" */
 function aplicarReset(reset, locaisTambem){
   const antes = db.registros.length;
@@ -1192,7 +1195,7 @@ async function baixar(){
       return { id:r.id, ts, data:dkey(d), hora:r.hora || hora(d), tipo:r.tipo||'Lote', lote:String(r.lote||'').toUpperCase(), empresa:r.empresa||'',
         localNome:r.local||'', localId:r.localId||'', codigo:r.codigo||'', dados:r.dados||undefined, fotoUrl:r.fotoUrl||'', aparelho:r.aparelho||'', remoto:true };
     }).filter(r=>r.ts && r.lote),
-    eventos: (j.eventos||[]).filter(e=>e.id && e.ts && e.data).map(e=>({ id:e.id, acao:e.acao, data:e.data, ts:Number(e.ts), aparelho:e.aparelho||'' }))
+    eventos: (j.eventos||[]).filter(e=>e.id && Number(e.ts)).map(e=>({ id:e.id, acao:e.acao, data:diaValido(e.data, e.ts), ts:Number(e.ts), aparelho:e.aparelho||'' }))
   };
   // locais compartilhados (alterações pendentes deste aparelho têm prioridade)
   const pend = new Set(db.filaLocais.map(l=>l.id));
