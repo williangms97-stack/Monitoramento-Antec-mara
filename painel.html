@@ -111,7 +111,11 @@ button,input,select{font:inherit;color:inherit}
 .prow-wide .up{color:var(--ok)} .prow-wide .down{color:var(--bad)}
 .twocol{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px}
 .twocol .h{font-size:13px;font-weight:800}
-@media (max-width:520px){.twocol{grid-template-columns:minmax(0,1fr)}.twocol .h:nth-child(2){display:none}}
+.twocol .col{display:flex;flex-direction:column;gap:12px;min-width:0;align-self:start}
+.twocol .h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.twocol .col:last-child .lbl{white-space:normal;overflow-wrap:anywhere}
+.twocol .hn{font-size:12px;font-weight:600;color:var(--muted,#6b6b6b)}
+@media (max-width:520px){.twocol{grid-template-columns:minmax(0,1fr);gap:22px}}
 .bar{height:6px;border-radius:3px;background:var(--hair);overflow:hidden;grid-column:1/-1;margin-top:-4px}
 .bar i{display:block;height:100%;border-radius:3px}
 
@@ -411,14 +415,15 @@ function render(){
   // tempo fora & locais
   const faixas = [['Até 24 h',0,24],['24 a 48 h',24,48],['48 a 72 h',48,72],['Mais de 72 h',72,1e9]].map(([n,a,b])=>({ n, v:ativos.filter(s=>{ const h=(agora-s.start)/3600000; return h>=a && h<b; }).length }));
   const cores = ['var(--lime)','#ffd36b','#ff9f6b','var(--bad)'];
-  const porLocal = (()=>{ const m=new Map(); ativos.forEach(s=>{ const k=s.last.local||'(sem local)'; m.set(k,(m.get(k)||0)+1); }); const a=[...m].sort((x,y)=>y[1]-x[1]); const top=a.slice(0,3); const resto=a.slice(3).reduce((t,x)=>t+x[1],0); if(resto) top.push(['Outros locais',resto]); while(top.length<4) top.push(['—',0]); return top; })();
+  // todos os locais com lote ativo, do maior para o menor (sem agrupar em "Outros")
+  const porLocal = (()=>{ const m=new Map(); ativos.forEach(s=>{ const k=s.last.local||'(sem local)'; m.set(k,(m.get(k)||0)+1); }); return [...m].sort((x,y)=>y[1]-x[1] || x[0].localeCompare(y[0],'pt-BR',{numeric:true})); })();
   const maxF = Math.max(1,...faixas.map(x=>x.v)), maxL = Math.max(1,...porLocal.map(x=>x[1]));
-  let fl = `<div class="h">Ativos por tempo fora</div><div class="h">Ativos por último local</div>`;
-  for(let i=0;i<4;i++){
-    fl += `<div class="prow" data-tip="<b>${faixas[i].n}</b>${faixas[i].v} lote(s) ativo(s)"><span class="lbl">${faixas[i].n}</span><span class="v">${faixas[i].v}</span><div class="bar"><i style="width:${faixas[i].v/maxF*100}%;background:${cores[i]}"></i></div></div>`;
-    fl += `<div class="prow" data-tip="<b>${esc(porLocal[i][0])}</b>${porLocal[i][1]} lote(s) ativo(s)"><span class="lbl">${esc(porLocal[i][0].length>26 ? '…'+porLocal[i][0].slice(-25) : porLocal[i][0])}</span><span class="v">${porLocal[i][1]}</span><div class="bar"><i style="width:${porLocal[i][1]/maxL*100}%;background:var(--lav)"></i></div></div>`;
-  }
-  $('#foraLoc').innerHTML = fl;
+  let colF = `<div class="h">Ativos por tempo fora</div>`;
+  faixas.forEach((x,i)=>{ colF += `<div class="prow" data-tip="<b>${x.n}</b>${x.v} lote(s) ativo(s)"><span class="lbl">${x.n}</span><span class="v">${x.v}</span><div class="bar"><i style="width:${x.v/maxF*100}%;background:${cores[i]}"></i></div></div>`; });
+  let colL = `<div class="h">Ativos por último local <span class="hn">${porLocal.length} local(is)</span></div>`;
+  if(!porLocal.length) colL += `<div class="prow"><span class="lbl">Nenhum lote ativo</span><span class="v">0</span></div>`;
+  porLocal.forEach(([n,v])=>{ colL += `<div class="prow" data-tip="<b>${esc(n)}</b>${v} lote(s) ativo(s)"><span class="lbl">${esc(n)}</span><span class="v">${v}</span><div class="bar"><i style="width:${v/maxL*100}%;background:var(--lav)"></i></div></div>`; });
+  $('#foraLoc').innerHTML = `<div class="col">${colF}</div><div class="col">${colL}</div>`;
 
   // tabelas
   const tipoTag = t => t==='Pré-lote' ? '<span class="tag pre">Pré-lote</span>' : 'Lote';
