@@ -206,10 +206,10 @@ tr.sev-warn td:first-child{box-shadow:inset 5px 0 0 var(--warn)}
       <!-- cartão preto -->
       <section class="sec">
         <div class="sechead"><h2>Fora da câmara fria</h2></div>
-        <div class="sub">Lotes ativos agora e bipagens dos últimos 14 dias</div>
+        <div class="sub">Bipagens do dia, lotes ativos agora e bipagens dos últimos 14 dias</div>
         <div class="legend"><span><i style="background:var(--lime)"></i>Lote</span><span><i style="background:var(--lav)"></i>Pré-lote</span></div>
         <div class="night-card">
-          <div><div class="big" id="bigN">0<sup id="bigD"></sup></div><div class="big-l">Ativos agora</div></div>
+          <div><div class="big" id="bigN">0<sup id="bigD"></sup></div><div class="big-l" id="bigL">Bipagens hoje</div></div>
           <div class="curve" id="curve"></div>
           <div class="minis" id="minis"></div>
         </div>
@@ -384,7 +384,9 @@ function render(){
 
   // cartão preto
   const novosHoje = SEQ.filter(s=>!s.final && s.startData===hoje() && passaS(s,f)).length;
-  $('#bigN').innerHTML = `${ativos.length}<sup>${novosHoje?'+'+novosHoje+' hoje':''}</sup>`;
+  // número grande = total de bipagens do dia (o mesmo valor do último ponto da curva); ao lado, lotes ativos agora
+  $('#bigN').innerHTML = `${bipDia.length}<sup>${ativos.length} lote(s) ativo(s)${novosHoje?'<br>+'+novosHoje+' novo(s) hoje':''}</sup>`;
+  $('#bigL').textContent = 'Bipagens ' + (f.dia===hoje() ? 'hoje' : 'em ' + curto(f.dia));
   const dias14 = []; for(let i=13;i>=0;i--){ const d=new Date(f.dia+'T12:00'); d.setDate(d.getDate()-i); dias14.push(dkey(d)); }
   const serie = dias14.map(d=>{ const rs = REGS.filter(r=>r.data===d && passaR(r,f)); return { d, n:rs.length, lote:rs.filter(r=>r.tipo==='Lote').length, pre:rs.filter(r=>r.tipo==='Pré-lote').length }; });
   $('#curve').innerHTML = curva(serie, larg('#curve'));
