@@ -116,14 +116,6 @@ button,input,select{font:inherit;color:inherit}
 .bar i{display:block;height:100%;border-radius:3px}
 
 /* tabelas */
-.filtros{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:-10px}
-.fpills{display:flex;gap:10px;flex-wrap:wrap}
-.pager{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:12px;font-size:13px;font-weight:700}
-.pager .pgbtns{display:flex;gap:8px;align-items:center}
-.pgb{height:38px;padding:0 14px;border:1.5px solid var(--ink);border-radius:10px;background:var(--paper);box-shadow:var(--shadow-sm);font-weight:800;font-size:13px;cursor:pointer}
-.pgb:disabled{opacity:.35;cursor:default;box-shadow:none}
-.pgb.num{min-width:38px;padding:0}
-.pgb.on{background:var(--ink);color:var(--paper)}
 .tablewrap{overflow-x:auto;border:1.5px solid var(--ink);border-radius:16px;box-shadow:var(--shadow-sm)}
 table{border-collapse:separate;border-spacing:0;width:100%;font-size:14px;min-width:720px}
 th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--hair);white-space:nowrap}
@@ -185,27 +177,25 @@ tr.sev-warn td:first-child{box-shadow:inset 5px 0 0 var(--warn)}
     </div>
     <div class="live"><span class="dot busy" id="dot"></span><span id="liveTxt">Conectando…</span></div>
     <div class="banner" id="erro" hidden></div>
-    <div class="filtros">
-      <div class="chips" id="chips" role="group" aria-label="Dia"></div>
-      <div class="fpills">
-        <label class="pill"><select id="fEmp" aria-label="Empresa"><option value="">Todas as empresas</option><option>Basf</option><option>Dois Marcos</option><option>Terceiro</option></select></label>
-        <label class="pill"><select id="fTipo" aria-label="Tipo"><option value="">Lotes e pré-lotes</option><option>Lote</option><option>Pré-lote</option></select></label>
-        <label class="pill"><select id="fLocal" aria-label="Local"><option value="">Todos os locais</option></select></label>
-      </div>
-    </div>
 
-    <div class="grid pagina" id="visao">
+    <div class="grid" id="visao">
       <!-- movimento do dia -->
       <section class="sec">
-        <div class="sechead"><h2>Movimento do dia</h2></div>
+        <div class="sechead"><h2>Movimento do dia</h2>
+          <label class="pill"><select id="fEmp" aria-label="Empresa"><option value="">Todas as empresas</option><option>Basf</option><option>Dois Marcos</option><option>Terceiro</option></select></label>
+          <label class="pill"><select id="fTipo" aria-label="Tipo"><option value="">Lotes e pré-lotes</option><option>Lote</option><option>Pré-lote</option></select></label>
+        </div>
         <div class="sub">Lotes bipados nas antecâmaras no dia escolhido</div>
         <div class="legend"><span><i style="background:var(--lime)"></i>Bipagens</span><span><i style="background:var(--lav)"></i>Reincidentes</span><span><i style="background:var(--ink)"></i>Acima de 24 h</span></div>
         <div class="tiles" id="tiles"></div>
+        <div class="chips" id="chips" role="group" aria-label="Dia"></div>
       </section>
 
       <!-- cartão preto -->
       <section class="sec">
-        <div class="sechead"><h2>Fora da câmara fria</h2></div>
+        <div class="sechead"><h2>Fora da câmara fria</h2>
+          <label class="pill"><select id="fLocal" aria-label="Local"><option value="">Todos os locais</option></select></label>
+        </div>
         <div class="sub">Lotes ativos agora e bipagens dos últimos 14 dias</div>
         <div class="legend"><span><i style="background:var(--lime)"></i>Lote</span><span><i style="background:var(--lav)"></i>Pré-lote</span></div>
         <div class="night-card">
@@ -228,10 +218,10 @@ tr.sev-warn td:first-child{box-shadow:inset 5px 0 0 var(--warn)}
       </section>
     </div>
 
-    <section class="sec pagina" id="ativos" hidden><div class="sechead"><h2>Lotes ativos fora da câmara fria</h2><span class="pill noarrow" id="nAtivos" style="cursor:default"></span></div>
+    <section class="sec" id="ativos"><div class="sechead"><h2>Lotes ativos fora da câmara fria</h2></div>
       <div class="sub">Ordenados pelo maior tempo fora · faixa vermelha acima de 48 h, laranja acima de 24 h</div><div id="tbAtivos"></div></section>
-    <section class="sec pagina" id="bipagens" hidden><div class="sechead"><h2>Bipagens do dia</h2><span class="pill noarrow" id="nBip" style="cursor:default"></span></div><div class="sub" id="subBip"></div><div id="tbBip"></div></section>
-    <section class="sec pagina" id="finalizados" hidden><div class="sechead"><h2>Finalizados</h2><span class="pill noarrow" id="nFin" style="cursor:default"></span></div><div class="sub">Lotes finalizados nos checklists dos últimos 7 dias até o dia escolhido</div><div id="tbFin"></div></section>
+    <section class="sec" id="bipagens"><div class="sechead"><h2>Bipagens do dia</h2></div><div class="sub" id="subBip"></div><div id="tbBip"></div></section>
+    <section class="sec" id="finalizados"><div class="sechead"><h2>Finalizados</h2></div><div class="sub">Lotes finalizados nos checklists dos últimos 7 dias até o dia escolhido</div><div id="tbFin"></div></section>
     <div class="foot" id="rodape"></div>
   </div>
 </div>
@@ -352,9 +342,8 @@ function processar(){
 const F = () => ({ dia:DIA, emp:$('#fEmp').value, tipo:$('#fTipo').value, local:$('#fLocal').value, busca:$('#fBusca').value.trim().toUpperCase() });
 const passaR = (r,f) => (!f.emp || r.empresa===f.emp) && (!f.tipo || r.tipo===f.tipo) && (!f.local || r.local===f.local) && (!f.busca || r.lote.includes(f.busca));
 const passaS = (s,f) => (!f.emp || s.empresa===f.emp) && (!f.tipo || s.tipo===f.tipo) && (!f.local || s.last.local===f.local) && (!f.busca || s.lote.includes(f.busca));
-const pag1 = () => { PAG.ativos = PAG.bip = PAG.fin = 1; };
-['#fEmp','#fTipo','#fLocal'].forEach(id=>$(id).addEventListener('change', ()=>{ pag1(); render(); }));
-$('#fBusca').addEventListener('input', ()=>{ clearTimeout(window._bt); window._bt = setTimeout(()=>{ pag1(); render(); }, 200); });
+['#fEmp','#fTipo','#fLocal'].forEach(id=>$(id).addEventListener('change', render));
+$('#fBusca').addEventListener('input', ()=>{ clearTimeout(window._bt); window._bt = setTimeout(render, 200); });
 
 /* ---------- desenho ---------- */
 const ICON = {
@@ -421,41 +410,25 @@ function render(){
   // tabelas
   const tipoTag = t => t==='Pré-lote' ? '<span class="tag pre">Pré-lote</span>' : 'Lote';
   const ord = ativos.slice().sort((a,b)=>a.start-b.start);
-  $('#nAtivos').textContent = ord.length + ' ativo(s)';
-  $('#tbAtivos').innerHTML = tabela('ativos', '<th>Tipo</th><th>Lote / pré-lote</th><th>Empresa</th><th>Início</th><th class="num">Dia</th><th>Último local</th><th>Última bipagem</th><th>Usuário</th><th class="num">Tempo fora</th>',
-    ord.map(s=>{ const h=(agora-s.start)/3600000; return `<tr class="${h>=48?'sev-bad':h>=24?'sev-warn':''}"><td>${tipoTag(s.tipo)}</td><td class="code">${esc(s.lote)}</td><td>${esc(s.empresa||'—')}</td><td>${brc(s.startData)} ${hora(new Date(s.start))}</td><td class="num">${diasEntre(s.startData,hoje())+1}</td><td>${esc(s.last.local)}</td><td>${brc(s.last.data)} ${s.last.hora}</td><td>${esc(s.last.usuario)}</td><td class="num"><b>${dur(agora-s.start)}</b></td></tr>`; }),
-    'Nenhum lote ativo fora da câmara fria com os filtros escolhidos.');
+  $('#tbAtivos').innerHTML = ord.length ? `<div class="tablewrap"><table><thead><tr><th>Tipo</th><th>Lote / pré-lote</th><th>Empresa</th><th>Início</th><th class="num">Dia</th><th>Último local</th><th>Última bipagem</th><th>Usuário</th><th class="num">Tempo fora</th></tr></thead><tbody>${
+    ord.map(s=>{ const h=(agora-s.start)/3600000; return `<tr class="${h>=48?'sev-bad':h>=24?'sev-warn':''}"><td>${tipoTag(s.tipo)}</td><td class="code">${esc(s.lote)}</td><td>${esc(s.empresa||'—')}</td><td>${brc(s.startData)} ${hora(new Date(s.start))}</td><td class="num">${diasEntre(s.startData,hoje())+1}</td><td>${esc(s.last.local)}</td><td>${brc(s.last.data)} ${s.last.hora}</td><td>${esc(s.last.usuario)}</td><td class="num"><b>${dur(agora-s.start)}</b></td></tr>`; }).join('')
+  }</tbody></table></div>` : '<div class="empty">Nenhum lote ativo fora da câmara fria com os filtros escolhidos.</div>';
   $('#subBip').textContent = `${br(f.dia)} · ${bipDia.length} bipagem(ns), da mais recente para a mais antiga`;
-  $('#nBip').textContent = br(f.dia);
-  $('#tbBip').innerHTML = tabela('bip', '<th>Hora</th><th>Tipo</th><th>Lote / pré-lote</th><th>Empresa</th><th>Local</th><th>Usuário</th><th>Situação</th><th class="num">Tempo fora</th>',
+  $('#tbBip').innerHTML = bipDia.length ? `<div class="tablewrap"><table><thead><tr><th>Hora</th><th>Tipo</th><th>Lote / pré-lote</th><th>Empresa</th><th>Local</th><th>Usuário</th><th>Situação</th><th class="num">Tempo fora</th></tr></thead><tbody>${
     bipDia.slice().reverse().map(r=>`<tr><td class="num">${r.hora}</td><td>${tipoTag(r.tipo)}</td><td class="code">${esc(r.lote)}</td><td>${esc(r.empresa||'—')}</td><td>${esc(r.local)}</td><td>${esc(r.usuario)}</td><td>${
       r.reincidente ? `<span class="tag ${r.fora>=H(24)?'bad':'re'}">Reincidente · dia ${r.diaSeq}</span>` : r.posDia>1 ? `<span class="tag mut">Mesmo dia · ${r.posDia}ª posição</span>` : '<span class="tag ok">1ª bipagem</span>'
-    }</td><td class="num">${r.reincidente?dur(r.fora):'—'}</td></tr>`),
-    'Nenhuma bipagem neste dia com os filtros escolhidos.');
+    }</td><td class="num">${r.reincidente?dur(r.fora):'—'}</td></tr>`).join('')
+  }</tbody></table></div>` : '<div class="empty">Nenhuma bipagem neste dia com os filtros escolhidos.</div>';
   const de = new Date(f.dia+'T12:00'); de.setDate(de.getDate()-6); const deK = dkey(de);
   const fins = SEQ.filter(s=>s.final && s.final.data>=deK && s.final.data<=f.dia && passaS(s,f)).sort((a,b)=>b.final.ts-a.final.ts);
-  $('#nFin').textContent = fins.length + ' finalizado(s)';
-  $('#tbFin').innerHTML = tabela('fin', '<th>Finalizado em</th><th>Tipo</th><th>Lote / pré-lote</th><th>Empresa</th><th>Primeira bipagem</th><th>Última bipagem</th><th>Último local</th><th class="num">Tempo fora</th>',
-    fins.map(s=>`<tr><td>${br(s.final.data)}</td><td>${tipoTag(s.tipo)}</td><td class="code">${esc(s.lote)}</td><td>${esc(s.empresa||'—')}</td><td>${brc(s.startData)} ${hora(new Date(s.start))}</td><td>${brc(s.last.data)} ${s.last.hora}</td><td>${esc(s.last.local)}</td><td class="num">${dur(s.last.ts-s.start)}</td></tr>`),
-    'Nenhum lote finalizado nesse período.');
+  $('#tbFin').innerHTML = fins.length ? `<div class="tablewrap"><table><thead><tr><th>Finalizado em</th><th>Tipo</th><th>Lote / pré-lote</th><th>Empresa</th><th>Primeira bipagem</th><th>Última bipagem</th><th>Último local</th><th class="num">Tempo fora</th></tr></thead><tbody>${
+    fins.map(s=>`<tr><td>${br(s.final.data)}</td><td>${tipoTag(s.tipo)}</td><td class="code">${esc(s.lote)}</td><td>${esc(s.empresa||'—')}</td><td>${brc(s.startData)} ${hora(new Date(s.start))}</td><td>${brc(s.last.data)} ${s.last.hora}</td><td>${esc(s.last.local)}</td><td class="num">${dur(s.last.ts-s.start)}</td></tr>`).join('')
+  }</tbody></table></div>` : '<div class="empty">Nenhum lote finalizado nesse período.</div>';
   $('#rodape').textContent = `Fonte: Planilha "Monitoramento Antecâmara" · ${REGS.length} bipagens válidas nos últimos ${DIAS_HISTORICO} dias · ${(DADOS.locais||[]).filter(l=>l.situacao!=='Removido').length} locais cadastrados.`;
   ligarTooltips();
 }
-$('#chips').addEventListener('click', e=>{ const b = e.target.closest('[data-dia]'); if(b){ DIA = b.dataset.dia; pag1(); render(); } });
-$('#btnAlerta').onclick = () => irPara('ativos');
-
-/* ---------- paginação das tabelas ---------- */
-const POR_PAG = 15, PAG = { ativos:1, bip:1, fin:1 };
-function tabela(chave, cab, linhas, vazio){
-  if(!linhas.length) return `<div class="empty">${vazio}</div>`;
-  const tot = Math.ceil(linhas.length/POR_PAG); PAG[chave] = Math.min(Math.max(1,PAG[chave]), tot);
-  const p = PAG[chave], ini = (p-1)*POR_PAG, fim = Math.min(linhas.length, ini+POR_PAG);
-  let nums = ''; const de = Math.max(1, Math.min(p-2, tot-4)), ate = Math.min(tot, de+4);
-  for(let i=de;i<=ate;i++) nums += `<button class="pgb num ${i===p?'on':''}" data-pg="${chave}:${i}" aria-label="Página ${i}">${i}</button>`;
-  return `<div class="tablewrap"><table><thead><tr>${cab}</tr></thead><tbody>${linhas.slice(ini,fim).join('')}</tbody></table></div>
-    <div class="pager"><span>${ini+1}–${fim} de ${linhas.length}</span>${tot>1?`<div class="pgbtns"><button class="pgb" data-pg="${chave}:${p-1}" ${p===1?'disabled':''}>‹ Anterior</button>${nums}<button class="pgb" data-pg="${chave}:${p+1}" ${p===tot?'disabled':''}>Próxima ›</button></div>`:''}</div>`;
-}
-document.addEventListener('click', e=>{ const b = e.target.closest('[data-pg]'); if(!b || b.disabled) return; const [k,n] = b.dataset.pg.split(':'); PAG[k] = +n; render(); document.getElementById(k==='bip'?'bipagens':k==='fin'?'finalizados':'ativos').scrollIntoView({ block:'start' }); });
+$('#chips').addEventListener('click', e=>{ const b = e.target.closest('[data-dia]'); if(b){ DIA = b.dataset.dia; render(); } });
+$('#btnAlerta').onclick = () => document.getElementById('ativos').scrollIntoView({ behavior:'smooth' });
 
 /* ---------- gráficos ---------- */
 const larg = id => Math.max(260, Math.round(($(id) && $(id).clientWidth) || 420));
@@ -493,17 +466,9 @@ function ligarTooltips(){
 document.addEventListener('touchstart', e=>{ if(!e.target.closest || !e.target.closest('.hit,[data-tip]')) $('#tip').hidden = true; }, { passive:true });
 
 /* navegação: marca a aba/ícone da seção visível */
-/* navegação em páginas: cada aba mostra só a sua seção */
-const PAGINAS = ['visao','ativos','bipagens','finalizados'];
-function irPara(id, semHistorico){
-  if(!PAGINAS.includes(id)) id = 'visao';
-  PAGINAS.forEach(p=>{ document.getElementById(p).hidden = p !== id; });
-  document.querySelectorAll('.tabs a, .dock-in a[href^="#"]').forEach(a=>a.classList.toggle('on', a.getAttribute('href')==='#'+id));
-  if(!semHistorico && location.hash !== '#'+id){ try{ history.pushState(null, '', '#'+id); }catch(e){} }
-  window.scrollTo(0,0); render();
-}
-document.querySelectorAll('.tabs a, .dock-in a[href^="#"]').forEach(a=>a.addEventListener('click', e=>{ e.preventDefault(); irPara(a.getAttribute('href').slice(1)); }));
-addEventListener('popstate', ()=>irPara(location.hash.slice(1), true));
+const secoes = ['visao','ativos','bipagens','finalizados'];
+function marcar(id){ document.querySelectorAll('.tabs a, .dock-in a[href^="#"]').forEach(a=>a.classList.toggle('on', a.getAttribute('href')==='#'+id)); }
+if('IntersectionObserver' in window){ const io = new IntersectionObserver(es=>{ es.forEach(e=>{ if(e.isIntersecting) marcar(e.target.id); }); }, { rootMargin:'-40% 0px -55% 0px' }); secoes.forEach(id=>io.observe(document.getElementById(id))); }
 
 /* ---------- início ---------- */
 $('#btnAtualizar').onclick = carregar;
@@ -516,7 +481,6 @@ function iniciar(){
   carregar(); clearInterval(timer); timer = setInterval(()=>{ if(!document.hidden) carregar(); else status(); }, ATUALIZA_MS);
   document.addEventListener('visibilitychange', ()=>{ if(!document.hidden && Date.now()-ultimo > ATUALIZA_MS) carregar(); });
 }
-irPara(location.hash.slice(1), true);
 if(SESSAO) iniciar(); else setTimeout(()=>$('#lgUsuario').focus(), 50);
 </script>
 </body>
