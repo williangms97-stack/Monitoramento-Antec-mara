@@ -87,25 +87,27 @@ button.prow{text-align:left;color:inherit}
 button.tile:active,button.prow:active{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--ink)}
 .go{font-size:11px;font-weight:800;opacity:.6;margin-top:2px}
 .blocos-sec{grid-column:1 / -1}
-.blocos{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:18px}
-.bloco{border:1.5px solid var(--ink);border-radius:18px;box-shadow:var(--shadow-sm);background:var(--paper);padding:14px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.blocos{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);grid-template-areas:"A E" "A D" "A C";gap:18px;align-items:start}
+@media (max-width:820px){.blocos{grid-template-columns:minmax(0,1fr);grid-template-areas:"A" "E" "D" "C"}}
+.bloco{border:1.5px solid var(--ink);border-radius:18px;box-shadow:var(--shadow-sm);background:var(--paper);padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
 .bloco-h{display:flex;align-items:center;gap:8px;border:0;background:transparent;padding:0;cursor:pointer;text-align:left;font:inherit;color:inherit}
 .bloco-h b{font-size:15px;font-weight:800;margin-right:auto}
 .bloco-h span{font-size:12px;font-weight:800;border:1.5px solid var(--ink);border-radius:999px;padding:2px 10px;background:#f6f7f2}
-.arms{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:10px}
-.area .tp{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-.arm{border:1.5px solid var(--ink);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;background:#fff;min-width:0}
-.arm-h{display:flex;align-items:center;justify-content:space-between;gap:4px;background:#1f2d6a;color:#fff;border:0;padding:6px 9px;font:inherit;font-weight:800;font-size:15px;cursor:pointer;text-align:left}
-.arm-h small{font-size:11px;font-weight:700;opacity:.85}
-.arm-h:hover{background:#33449a}
-.area{display:flex;align-items:center;justify-content:space-between;gap:4px;border:0;border-top:1px solid var(--hair);padding:6px 9px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;background:#fff;text-align:left;color:var(--ink)}
-.area b{font-size:14px;font-weight:800}
-.area.vazio{color:var(--muted);background:repeating-linear-gradient(135deg,#fafaf6 0 6px,#f1f1ec 6px 12px)}
-.area.vazio b{font-weight:700}
-.area:hover{filter:brightness(.95)}
-.area .tp{display:inline-flex;align-items:center;gap:5px}
-.area .tp i{width:8px;height:8px;border-radius:2px;display:inline-block;flex:none}
-.area .tp i.var{background:#f28c28} .area .tp i.ant{background:#3d3d3b}
+.bloco svg{display:block;width:100%;height:auto;max-height:640px}
+.bloco .arm{fill:#1f2d6a;cursor:pointer}
+.bloco .arm:hover{fill:#33449a}
+.bloco .arm-n{fill:#fff;font:800 24px var(--f);pointer-events:none;text-anchor:middle;dominant-baseline:central}
+.bloco .ctx{fill:#e4e4de}
+.bloco .ctx-t{fill:#8a8a84;font:700 11px var(--f);text-anchor:middle;dominant-baseline:central;pointer-events:none}
+.bloco .corr{fill:#f3f3ee}
+.bloco .z{cursor:pointer;stroke-width:1.5}
+.bloco .z.var.vazio{fill:#f28c28;fill-opacity:.35;stroke:#f28c28}
+.bloco .z.ant.vazio{fill:#0b0b0b;fill-opacity:.85;stroke:#0b0b0b}
+.bloco .z.cheio{stroke:#0b0b0b;stroke-width:2}
+.bloco .z:hover{stroke:#0b0b0b;stroke-width:3.5}
+.bloco .sel{pointer-events:none}
+.bloco .sel circle{fill:#fff;stroke:#0b0b0b;stroke-width:2}
+.bloco .sel text{fill:#0b0b0b;font:800 13px var(--f);text-anchor:middle;dominant-baseline:central}
 .mlegend{display:flex;gap:8px 16px;flex-wrap:wrap;font-size:12px;font-weight:700;align-items:center}
 .mlegend i{display:inline-block;width:18px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px;border:1.5px solid var(--ink)}
 .mnota{font-size:12px;color:var(--ink-2);font-weight:600}
@@ -272,8 +274,8 @@ tr.sev-warn td:first-child{box-shadow:inset 5px 0 0 var(--warn)}
       <!-- armazéns em blocos -->
       <section class="sec blocos-sec">
         <div class="sechead"><h2>Armazéns</h2><span class="pill noarrow" id="nMapa" style="cursor:default">—</span></div>
-        <div class="sub">Lotes ativos por complexo, armazém e área (antecâmara e varanda). Toque em uma área, armazém ou complexo para ver os lotes.</div>
-        <div class="mlegend"><span><i style="background:repeating-linear-gradient(135deg,#fafaf6 0 4px,#e6e6df 4px 8px)"></i>Vazia</span><span><i style="background:var(--lime)"></i>Até 24 h</span><span><i style="background:#ffd36b"></i>24 a 48 h</span><span><i style="background:#ff9f6b"></i>48 a 72 h</span><span><i style="background:#ff8a8a"></i>Mais de 72 h</span><span style="opacity:.7">cor = lote mais antigo da área</span></div>
+        <div class="sub">Lotes ativos nas antecâmaras (linhas pretas) e varandas (laranja) de cada complexo. Toque em uma área, no armazém ou no nome do complexo para ver os lotes.</div>
+        <div class="mlegend"><span><i style="background:#0b0b0b"></i>Antecâmara vazia</span><span><i style="background:rgba(242,140,40,.45);border-color:#f28c28"></i>Varanda vazia</span><span><i style="background:var(--lime)"></i>Até 24 h</span><span><i style="background:#ffd36b"></i>24 a 48 h</span><span><i style="background:#ff9f6b"></i>48 a 72 h</span><span><i style="background:#ff8a8a"></i>Mais de 72 h</span><span style="opacity:.7">cor = lote mais antigo da área</span></div>
         <div class="blocos" id="mapa"></div>
         <div class="mnota" id="mapaNota"></div>
       </section>
@@ -630,47 +632,75 @@ function aoFiltrar(el){ const [k,c] = el.dataset.f.split(':'); FS[k][c] = el.val
 document.addEventListener('change', e=>{ if(e.target.matches('select[data-f]')) aoFiltrar(e.target); });
 document.addEventListener('input', e=>{ if(e.target.matches('input[data-f]')){ clearTimeout(window._ft); const el=e.target; window._ft = setTimeout(()=>aoFiltrar(el), 250); } });
 
-/* ---------- armazéns em blocos (complexos alinhados, sem a planta) ---------- */
+/* ---------- complexos desenhados como na planta (retos e alinhados) ---------- */
 const COMPLEXOS = [
-  { id:'A', nome:'Complexo 01 a 06', arms:['01','02','03','04','05','06'] },
-  { id:'T', nome:'AR TSI', arms:['TSI'] },
-  { id:'B', nome:'Complexo 07 a 11', arms:['07','08','09','10','11'] },
-  { id:'C', nome:'Armazém 12', arms:['12'] },
+  { id:'A', nome:'Complexo 01 a 11 e AR TSI', arms:['01','02','03','04','05','06','TSI','07','08','09','10','11'] },
+  { id:'E', nome:'Complexo 17 a 24', arms:['17','18','19','20','21','22','23','24'] },
   { id:'D', nome:'Complexo 13 a 16', arms:['13','14','15','16'] },
-  { id:'E', nome:'Complexo 17 a 24', arms:['17','18','19','20','21','22','23','24'] } ];
-// áreas conhecidas (cadastro atual); novas áreas cadastradas aparecem sozinhas
-const AREAS_BASE = ['VARANDA C1','VARANDA C2','VARANDA C3','ANT C4','ANT C5','ANT C6','VARANDA C6','ANT TSI 25','ANT C7','ANT C8','ANT C9','VARANDA C10','VARANDA C11','VARANDA C12','ANT C13','ANT C14','ANT C15','ANT C16','ANT C17','ANT C18','ANT C19','ANT C20','ANT C21','ANT C22','ANT C23','ANT C24'];
-const COR_FAIXA = h => h>=72 ? '#ff8a8a' : h>=48 ? '#ff9f6b' : h>=24 ? '#ffd36b' : '#a6e86e';
-const normLocal = l => String(l||'').trim().toUpperCase().replace(/\s+/g,' ');
+  { id:'C', nome:'Armazém 12', arms:['12'] } ];
 const blocoDe = a => (COMPLEXOS.find(c=>c.arms.includes(a))||{}).id || '';
+// desenho de cada complexo: a = armazém, z = área (antecâmara/varanda), c = contexto, k = corredor
+const DESENHO = (()=>{
+  const A = { w:440, h:590, e:[] }, Y0 = 40, RH = 92, AH = 84;
+  const row = i => Y0 + i*RH;
+  ['06','05','04','03','02','01'].forEach((n,i)=>A.e.push({ t:'a', id:n, x:0, y:row(i), w:110, h:AH }));
+  ['07','08','09','10','11'].forEach((n,i)=>A.e.push({ t:'a', id:n, x:330, y:row(i), w:110, h:AH }));
+  A.e.push({ t:'k', x:114, y:Y0, w:212, h:6*RH-8 });
+  A.e.push({ t:'a', id:'TSI', x:172, y:row(0), w:96, h:2*RH-8, lbl:'AR TSI' });
+  A.e.push({ t:'c', x:186, y:row(2)+10, w:68, h:64, lbl:'TSI' }, { t:'c', x:186, y:row(3)+4, w:68, h:56, lbl:'Convivência' });
+  ['06','05','04'].forEach((n,i)=>A.e.push({ t:'z', l:'ANT C'+(+n), x:118, y:row(i)+6, w:20, h:AH-12 }));
+  ['03','02','01'].forEach((n,i)=>A.e.push({ t:'z', l:'VARANDA C'+(+n), x:118, y:row(i+3)+6, w:20, h:AH-12 }));
+  A.e.push({ t:'z', l:'VARANDA C6', x:8, y:Y0-30, w:94, h:20 });
+  A.e.push({ t:'z', l:'ANT TSI 25', x:146, y:row(0)+6, w:20, h:2*RH-20 }, { t:'z', l:'ANT TSI 25', x:274, y:row(0)+6, w:20, h:2*RH-20, dup:1 });
+  ['07','08','09'].forEach((n,i)=>A.e.push({ t:'z', l:'ANT C'+(+n), x:302, y:row(i)+6, w:20, h:AH-12 }));
+  ['10','11'].forEach((n,i)=>A.e.push({ t:'z', l:'VARANDA C'+(+n), x:302, y:row(i+3)+6, w:20, h:AH-12 }));
+  const C = { w:150, h:200, e:[ { t:'z', l:'VARANDA C12', x:24, y:4, w:102, h:20 }, { t:'a', id:'12', x:20, y:34, w:110, h:166 } ] };
+  const D = { w:440, h:176, e:[ { t:'k', x:186, y:0, w:68, h:176 },
+    { t:'a', id:'13', x:0, y:0, w:180, h:84 }, { t:'a', id:'14', x:0, y:92, w:180, h:84 }, { t:'a', id:'15', x:260, y:0, w:180, h:84 }, { t:'a', id:'16', x:260, y:92, w:180, h:84 },
+    { t:'z', l:'ANT C13', x:190, y:6, w:24, h:72 }, { t:'z', l:'ANT C14', x:190, y:98, w:24, h:72 }, { t:'z', l:'ANT C15', x:226, y:6, w:24, h:72 }, { t:'z', l:'ANT C16', x:226, y:98, w:24, h:72 } ] };
+  const E = { w:440, h:380, e:[ { t:'k', x:184, y:78, w:72, h:224 }, { t:'k', x:0, y:154, w:440, h:72 }, { t:'c', x:190, y:178, w:60, h:24, lbl:'Carreg.' },
+    { t:'a', id:'17', x:0, y:0, w:216, h:72 }, { t:'a', id:'19', x:224, y:0, w:216, h:72 },
+    { t:'a', id:'18', x:0, y:80, w:180, h:70 }, { t:'a', id:'20', x:260, y:80, w:180, h:70 },
+    { t:'a', id:'21', x:0, y:230, w:180, h:70 }, { t:'a', id:'23', x:260, y:230, w:180, h:70 },
+    { t:'a', id:'22', x:0, y:308, w:216, h:72 }, { t:'a', id:'24', x:224, y:308, w:216, h:72 },
+    { t:'z', l:'ANT C17', x:188, y:84, w:28, h:62 }, { t:'z', l:'ANT C19', x:224, y:84, w:28, h:62 },
+    { t:'z', l:'ANT C18', x:8, y:158, w:164, h:18 }, { t:'z', l:'ANT C20', x:268, y:158, w:164, h:18 },
+    { t:'z', l:'ANT C21', x:8, y:204, w:164, h:18 }, { t:'z', l:'ANT C23', x:268, y:204, w:164, h:18 },
+    { t:'z', l:'ANT C22', x:188, y:234, w:28, h:62 }, { t:'z', l:'ANT C24', x:224, y:234, w:28, h:62 } ] };
+  return { A, C, D, E };
+})();
+const COR_FAIXA = h => h>=72 ? '#ff6b6b' : h>=48 ? '#ff9f6b' : h>=24 ? '#ffd36b' : '#a6e86e';
+const normLocal = l => String(l||'').trim().toUpperCase().replace(/\s+/g,' ');
 function desenharMapa(ativos, agora){
   const porLocal = {}; ativos.forEach(s=>{ const k = normLocal(s.last.local); (porLocal[k] = porLocal[k] || []).push(s); });
-  const nomes = new Set(AREAS_BASE);
-  (DADOS.locais||[]).filter(l=>l.situacao!=='Removido').forEach(l=>{ const n = normLocal(l.armazem); if(armDe(n)) nomes.add(n); });
-  Object.keys(porLocal).forEach(n=>{ if(armDe(n)) nomes.add(n); });
-  const areasDe = a => [...nomes].filter(n=>armDe(n)===a).sort((x,y)=> (x.startsWith('ANT')?0:1)-(y.startsWith('ANT')?0:1));
-  const info = l => { const ls = porLocal[normLocal(l)] || []; return { n:ls.length, hmax:ls.reduce((m,s)=>Math.max(m,(agora-s.start)/3600000),0) }; };
+  const info = l => { const ls = porLocal[normLocal(l)] || []; return { n:ls.length, h24:ls.filter(s=>agora-s.start>=86400000).length, hmax:ls.reduce((m,s)=>Math.max(m,(agora-s.start)/3600000),0) }; };
   const go = o => esc(JSON.stringify(o));
-  const todosArms = new Set(COMPLEXOS.flatMap(c=>c.arms));
-  const extras = [...new Set([...nomes].map(armDe))].filter(a=>a && !todosArms.has(a)).sort();
-  const lista = extras.length ? COMPLEXOS.concat([{ id:'X', nome:'Outros armazéns', arms:extras }]) : COMPLEXOS;
-  let html = '', noMapa = 0;
-  lista.forEach(c=>{
-    let tot = 0, cards = '';
-    c.arms.forEach(a=>{
-      const areas = areasDe(a); let ta = 0;
-      const linhas = areas.map(l=>{ const i = info(l); ta += i.n; const tipo = l.startsWith('VARANDA') ? 'var' : 'ant';
-        return `<button class="area ${i.n?'':'vazio'}" ${i.n?`style="background:${COR_FAIXA(i.hmax)}"`:''} data-go='${go({p:'ativos',f:{local:l}})}' title="${esc(l)}${i.n?' · mais antigo: '+dur(i.hmax*3600000):''}"><span class="tp"><i class="${tipo}"></i>${tipo==='var'?'Varanda':'Antec.'}</span><b>${i.n||'—'}</b></button>`; }).join('');
-      tot += ta;
-      cards += `<div class="arm"><button class="arm-h" data-go='${go({p:'ativos',f:{arm:a}})}' title="${esc(nomeArm(a))}: ver todas as áreas"><span>${a}</span><small>${ta?'Σ '+ta:''}</small></button>${linhas || '<div class="area vazio" style="cursor:default">Sem área cadastrada</div>'}</div>`;
+  const desenhados = new Set();
+  let html = '';
+  COMPLEXOS.forEach(c=>{
+    const d = DESENHO[c.id]; let svg = `<svg viewBox="-4 -4 ${d.w+8} ${d.h+8}" style="max-width:${Math.round(d.w*1.25)}px;margin:0 auto" role="img" aria-label="${esc(c.nome)}">`, selos = '', tot = 0;
+    d.e.forEach(e=>{
+      if(e.t==='k') svg += `<rect class="corr" x="${e.x}" y="${e.y}" width="${e.w}" height="${e.h}" rx="6"/>${e.lbl?`<text class="ctx-t" x="${e.x+e.w/2}" y="${e.y+e.h/2}">${e.lbl.toUpperCase()}</text>`:''}`;
+      if(e.t==='c') svg += `<rect class="ctx" x="${e.x}" y="${e.y}" width="${e.w}" height="${e.h}" rx="6"/><text class="ctx-t" x="${e.x+e.w/2}" y="${e.y+e.h/2}">${e.lbl}</text>`;
+      if(e.t==='a'){
+        const areas = d.e.filter(z=>z.t==='z' && armDe(z.l)===e.id && !z.dup).map(z=>z.l);
+        const linhas = areas.map(l=>{ const i=info(l); return `${esc(l)}: ${i.n ? i.n+' lote(s)'+(i.h24?' · '+i.h24+' acima de 24 h':'') : 'vazia'}`; }).join('<br>');
+        svg += `<rect class="arm" x="${e.x}" y="${e.y}" width="${e.w}" height="${e.h}" rx="5" data-go='${go({p:'ativos',f:{arm:e.id}})}' data-tip="<b>${nomeArm(e.id)}</b>${linhas || 'sem área cadastrada'}"/><text class="arm-n" x="${e.x+e.w/2}" y="${e.y+e.h/2}">${e.lbl||e.id}</text>`;
+      }
+      if(e.t==='z'){
+        desenhados.add(normLocal(e.l)); const i = info(e.l), tipo = e.l.startsWith('VARANDA') ? 'var' : 'ant';
+        if(!e.dup) tot += i.n;
+        svg += `<rect class="z ${tipo} ${i.n?'cheio':'vazio'}" x="${e.x}" y="${e.y}" width="${e.w}" height="${e.h}" rx="4" ${i.n?`style="fill:${COR_FAIXA(i.hmax)}"`:''} data-go='${go({p:'ativos',f:{local:e.l}})}' data-tip="<b>${tipo==='var'?'Varanda':'Antecâmara'} · ${esc(e.l)}</b>${i.n ? i.n+' lote(s) ativo(s)'+(i.h24?'<br>'+i.h24+' acima de 24 h':'')+'<br>Mais antigo: '+dur(i.hmax*3600000) : 'Nenhum lote agora'}"/>`;
+        if(i.n && !e.dup) selos += `<g class="sel"><circle cx="${e.x+e.w/2}" cy="${e.y+e.h/2}" r="${i.n>99?15:12}"/><text x="${e.x+e.w/2}" y="${e.y+e.h/2}">${i.n}</text></g>`;
+      }
     });
-    noMapa += tot;
-    html += `<div class="bloco"><button class="bloco-h" data-go='${go({p:'ativos',f:{blk:c.id}})}' title="Ver os lotes de ${esc(c.nome)}"><b>${esc(c.nome)}</b><span>${tot} lote(s) ›</span></button><div class="arms">${cards}</div></div>`;
+    svg += selos + '</svg>';
+    html += `<div class="bloco" style="grid-area:${c.id}"><button class="bloco-h" data-go='${go({p:'ativos',f:{blk:c.id}})}' title="Ver os lotes de ${esc(c.nome)}"><b>${esc(c.nome)}</b><span>${tot} lote(s) ›</span></button>${svg}</div>`;
   });
   $('#mapa').innerHTML = html;
   $('#nMapa').textContent = ativos.length + ' lote(s) ativo(s)';
-  const fora = Object.keys(porLocal).filter(l=>!armDe(l));
-  $('#mapaNota').innerHTML = fora.length ? 'Em outros locais: ' + fora.map(l=>`<a href="#ativos" data-go='${go({p:'ativos',f:{local:porLocal[l][0].last.local}})}'>${esc(l||'(sem local)')} (${porLocal[l].length})</a>`).join(' · ') : '';
+  const fora = Object.keys(porLocal).filter(l=>!desenhados.has(l));
+  $('#mapaNota').innerHTML = fora.length ? 'Em outras áreas (fora do desenho): ' + fora.map(l=>`<a href="#ativos" data-go='${go({p:'ativos',f:{local:porLocal[l][0].last.local}})}'>${esc(l||'(sem local)')} (${porLocal[l].length})</a>`).join(' · ') : '';
 }
 
 /* ---------- gráficos ---------- */
