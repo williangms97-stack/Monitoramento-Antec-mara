@@ -648,16 +648,16 @@ const blocoDe = a => (COMPLEXOS.find(c=>c.arms.includes(a))||{}).id || '';
 const DESENHO = (()=>{
   // print 1: 06-05-04 | antecâmara | AR TSI | antecâmara | 07-08-09 (coluna da direita um pouco mais baixa); TSI abaixo do AR TSI
   const RH = 92, AH = 84;
-  const A = { w:440, h:338, e:[] }, ya = i => 10 + i*RH, yb = i => 10 + 46 + i*RH;
-  A.e.push({ t:'k', x:144, y:10, w:182, h:3*RH+38 });
+  const A = { w:440, h:292, e:[] }, ya = i => 10 + i*RH, yb = ya;   // 06∥07, 05∥08, 04∥09
+  A.e.push({ t:'k', x:144, y:10, w:182, h:3*RH-8 });
   // 06: câmara fria do lado externo (varanda à esquerda); 04 e 05: antecâmara no corredor (risco preto)
   ['06','05','04'].forEach((n,i)=>{ A.e.push({ t:'a', id:n, x:30, y:ya(i), w:110, h:AH }); if(n!=='06') A.e.push({ t:'z', l:'ANT C'+(+n), x:148, y:ya(i)+6, w:20, h:AH-12 }); });
   A.e.push({ t:'z', l:'VARANDA C6', x:2, y:ya(0)+6, w:20, h:AH-12 });
   ['07','08','09'].forEach((n,i)=>A.e.push({ t:'a', id:n, x:330, y:yb(i), w:110, h:AH }, { t:'z', l:'ANT C'+(+n), x:302, y:yb(i)+6, w:20, h:AH-12 }));
-  A.e.push({ t:'a', id:'TSI', x:186, y:ya(0)+20, w:96, h:2*RH-36, lbl:'AR TSI' });
+  A.e.push({ t:'a', id:'TSI', x:186, y:ya(0)+6, w:96, h:2*RH-40, lbl:'AR TSI' });
   // ANT TSI 25: área do próprio AR TSI (faixa logo abaixo dele, sem risco próprio no desenho)
-  A.e.push({ t:'z', l:'ANT TSI 25', x:190, y:ya(0)+20+2*RH-30, w:88, h:20 });
-  A.e.push({ t:'c', x:204, y:ya(2)+34, w:60, h:70, lbl:'TSI', cls:'tsi' });
+  A.e.push({ t:'z', l:'ANT TSI 25', x:190, y:ya(0)+6+2*RH-34, w:88, h:20 });
+  A.e.push({ t:'c', x:204, y:ya(2)+8, w:60, h:68, lbl:'TSI', cls:'tsi' });
   // print 5: 03-02-01 com varanda à direita | convivência | 10-11 com varanda à esquerda
   const B = { w:440, h:276, e:[] }, yc = i => i*RH;
   ['03','02','01'].forEach((n,i)=>B.e.push({ t:'a', id:n, x:0, y:yc(i), w:110, h:AH }, { t:'z', l:'VARANDA C'+(+n), x:122, y:yc(i)+6, w:20, h:AH-12 }));
