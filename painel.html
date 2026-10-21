@@ -652,7 +652,7 @@ const DESENHO = (()=>{
   A.e.push({ t:'k', x:144, y:10, w:182, h:3*RH-8 });
   // 06: câmara fria do lado externo (varanda à esquerda); 04 e 05: antecâmara no corredor (risco preto)
   ['06','05','04'].forEach((n,i)=>{ A.e.push({ t:'a', id:n, x:30, y:ya(i), w:110, h:AH }); if(n!=='06') A.e.push({ t:'z', l:'ANT C'+(+n), x:148, y:ya(i)+6, w:20, h:AH-12 }); });
-  A.e.push({ t:'z', l:'VARANDA C6', x:2, y:ya(0)+6, w:20, h:AH-12 });
+  A.e.push({ t:'z', l:'VARANDA C6', x:148, y:ya(0)+6, w:20, h:AH-12 });   // mesma posição da área do 05
   ['07','08','09'].forEach((n,i)=>A.e.push({ t:'a', id:n, x:330, y:yb(i), w:110, h:AH }, { t:'z', l:'ANT C'+(+n), x:302, y:yb(i)+6, w:20, h:AH-12 }));
   A.e.push({ t:'a', id:'TSI', x:186, y:ya(0)+6, w:96, h:2*RH-40, lbl:'AR TSI' });
   // ANT TSI 25: área do próprio AR TSI (faixa logo abaixo dele, sem risco próprio no desenho)
