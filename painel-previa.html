@@ -101,13 +101,16 @@ button.tile:active,button.prow:active{transform:translate(3px,3px);box-shadow:1p
 .bloco .ctx-t{fill:#8a8a84;font:700 11px var(--f);text-anchor:middle;dominant-baseline:central;pointer-events:none}
 .bloco .corr{fill:#f3f3ee}
 .bloco .z{cursor:pointer;stroke-width:1.5}
-.bloco .z.var.vazio{fill:#f28c28;fill-opacity:.35;stroke:#f28c28}
-.bloco .z.ant.vazio{fill:#0b0b0b;fill-opacity:.85;stroke:#0b0b0b}
+.bloco .z.var{fill:#f28c28;stroke:#b85f0e}
+.bloco .z.ant{fill:#6b63d9;stroke:#3a339c}
+.bloco .z.vazio{fill-opacity:.28;stroke-dasharray:4 3}
 .bloco .z.cheio{stroke:#0b0b0b;stroke-width:2}
 .bloco .z:hover{stroke:#0b0b0b;stroke-width:3.5}
 .bloco .sel{pointer-events:none}
 .bloco .sel circle{fill:#fff;stroke:#0b0b0b;stroke-width:2}
 .bloco .sel text{fill:#0b0b0b;font:800 13px var(--f);text-anchor:middle;dominant-baseline:central}
+.bloco .sel.alerta circle{fill:#d03b3b}
+.bloco .sel.alerta text{fill:#fff}
 .mlegend{display:flex;gap:8px 16px;flex-wrap:wrap;font-size:12px;font-weight:700;align-items:center}
 .mlegend i{display:inline-block;width:18px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px;border:1.5px solid var(--ink)}
 .mnota{font-size:12px;color:var(--ink-2);font-weight:600}
@@ -274,8 +277,8 @@ tr.sev-warn td:first-child{box-shadow:inset 5px 0 0 var(--warn)}
       <!-- armazéns em blocos -->
       <section class="sec blocos-sec">
         <div class="sechead"><h2>Armazéns</h2><span class="pill noarrow" id="nMapa" style="cursor:default">—</span></div>
-        <div class="sub">Lotes ativos nas antecâmaras (linhas pretas) e varandas (laranja) de cada complexo. Toque em uma área, no armazém ou no nome do complexo para ver os lotes.</div>
-        <div class="mlegend"><span><i style="background:#0b0b0b"></i>Antecâmara vazia</span><span><i style="background:rgba(242,140,40,.45);border-color:#f28c28"></i>Varanda vazia</span><span><i style="background:var(--lime)"></i>Até 24 h</span><span><i style="background:#ffd36b"></i>24 a 48 h</span><span><i style="background:#ff9f6b"></i>48 a 72 h</span><span><i style="background:#ff8a8a"></i>Mais de 72 h</span><span style="opacity:.7">cor = lote mais antigo da área</span></div>
+        <div class="sub">Lotes ativos nas antecâmaras (roxo) e varandas (laranja) de cada complexo. Toque em uma área, no armazém ou no nome do complexo para ver os lotes.</div>
+        <div class="mlegend"><span><i style="background:#6b63d9"></i>Antecâmara</span><span><i style="background:#f28c28"></i>Varanda</span><span><i style="background:rgba(107,99,217,.28);border-style:dashed"></i>Área vazia (mais clara)</span><span><i style="background:#fff;border-radius:50%;width:12px;height:12px"></i>Nº de lotes</span><span><i style="background:#d03b3b;border-radius:50%;width:12px;height:12px"></i>Tem lote acima de 24 h</span></div>
         <div class="blocos" id="mapa"></div>
         <div class="mnota" id="mapaNota"></div>
       </section>
@@ -690,8 +693,8 @@ function desenharMapa(ativos, agora){
       if(e.t==='z'){
         desenhados.add(normLocal(e.l)); const i = info(e.l), tipo = e.l.startsWith('VARANDA') ? 'var' : 'ant';
         if(!e.dup) tot += i.n;
-        svg += `<rect class="z ${tipo} ${i.n?'cheio':'vazio'}" x="${e.x}" y="${e.y}" width="${e.w}" height="${e.h}" rx="4" ${i.n?`style="fill:${COR_FAIXA(i.hmax)}"`:''} data-go='${go({p:'ativos',f:{local:e.l}})}' data-tip="<b>${tipo==='var'?'Varanda':'Antecâmara'} · ${esc(e.l)}</b>${i.n ? i.n+' lote(s) ativo(s)'+(i.h24?'<br>'+i.h24+' acima de 24 h':'')+'<br>Mais antigo: '+dur(i.hmax*3600000) : 'Nenhum lote agora'}"/>`;
-        if(i.n && !e.dup) selos += `<g class="sel"><circle cx="${e.x+e.w/2}" cy="${e.y+e.h/2}" r="${i.n>99?15:12}"/><text x="${e.x+e.w/2}" y="${e.y+e.h/2}">${i.n}</text></g>`;
+        svg += `<rect class="z ${tipo} ${i.n?'cheio':'vazio'}" x="${e.x}" y="${e.y}" width="${e.w}" height="${e.h}" rx="4" data-go='${go({p:'ativos',f:{local:e.l}})}' data-tip="<b>${tipo==='var'?'Varanda':'Antecâmara'} · ${esc(e.l)}</b>${i.n ? i.n+' lote(s) ativo(s)'+(i.h24?'<br>'+i.h24+' acima de 24 h':'')+'<br>Mais antigo: '+dur(i.hmax*3600000) : 'Nenhum lote agora'}"/>`;
+        if(i.n && !e.dup) selos += `<g class="sel ${i.h24?'alerta':''}"><circle cx="${e.x+e.w/2}" cy="${e.y+e.h/2}" r="${i.n>99?15:12}"/><text x="${e.x+e.w/2}" y="${e.y+e.h/2}">${i.n}</text></g>`;
       }
     });
     svg += selos + '</svg>';
