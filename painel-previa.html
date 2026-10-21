@@ -652,7 +652,7 @@ const DESENHO = (()=>{
   A.e.push({ t:'k', x:144, y:10, w:182, h:3*RH-8 });
   // 06: câmara fria do lado externo (varanda à esquerda); 04 e 05: antecâmara no corredor (risco preto)
   ['06','05','04'].forEach((n,i)=>{ A.e.push({ t:'a', id:n, x:30, y:ya(i), w:110, h:AH }); if(n!=='06') A.e.push({ t:'z', l:'ANT C'+(+n), x:148, y:ya(i)+6, w:20, h:AH-12 }); });
-  A.e.push({ t:'z', l:'VARANDA C6', x:148, y:ya(0)+6, w:20, h:AH-12 });   // mesma posição da área do 05
+  A.e.push({ t:'z', l:'VARANDA C6', x:148, y:ya(0)+6, w:20, h:AH-12, estilo:'ant' });   // igual à do 05 (cadastrada como varanda, desenhada como antecâmara)
   ['07','08','09'].forEach((n,i)=>A.e.push({ t:'a', id:n, x:330, y:yb(i), w:110, h:AH }, { t:'z', l:'ANT C'+(+n), x:302, y:yb(i)+6, w:20, h:AH-12 }));
   A.e.push({ t:'a', id:'TSI', x:186, y:ya(0)+6, w:96, h:2*RH-40, lbl:'AR TSI' });
   // ANT TSI 25: área do próprio AR TSI (faixa logo abaixo dele, sem risco próprio no desenho)
@@ -697,7 +697,7 @@ function desenharMapa(ativos, agora){
         svg += `<rect class="arm" x="${e.x}" y="${e.y}" width="${e.w}" height="${e.h}" rx="5" data-go='${go({p:'ativos',f:{arm:e.id}})}' data-tip="<b>${nomeArm(e.id)}</b>${linhas || 'sem área cadastrada'}"/><text class="arm-n" x="${e.x+e.w/2}" y="${e.y+e.h/2}">${e.lbl||e.id}</text>`;
       }
       if(e.t==='z'){
-        desenhados.add(normLocal(e.l)); const i = info(e.l), tipo = e.l.startsWith('VARANDA') ? 'var' : 'ant';
+        desenhados.add(normLocal(e.l)); const i = info(e.l), tipo = e.estilo || (e.l.startsWith('VARANDA') ? 'var' : 'ant');
         if(!e.dup) tot += i.n;
         svg += `<rect class="z ${tipo} ${i.n?'cheio':'vazio'}" x="${e.x}" y="${e.y}" width="${e.w}" height="${e.h}" rx="4" data-go='${go({p:'ativos',f:{local:e.l}})}' data-tip="<b>${tipo==='var'?'Varanda':'Antecâmara'} · ${esc(e.l)}</b>${i.n ? i.n+' lote(s) ativo(s)'+(i.h24?'<br>'+i.h24+' acima de 24 h':'')+'<br>Mais antigo: '+dur(i.hmax*3600000) : 'Nenhum lote agora'}"/>`;
         if(i.n && !e.dup) selos += `<g class="sel ${i.h24?'alerta':''}"><circle cx="${e.x+e.w/2}" cy="${e.y+e.h/2}" r="${i.n>99?15:12}"/><text x="${e.x+e.w/2}" y="${e.y+e.h/2}">${i.n}</text></g>`;
