@@ -87,8 +87,8 @@ button.prow{text-align:left;color:inherit}
 button.tile:active,button.prow:active{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--ink)}
 .go{font-size:11px;font-weight:800;opacity:.6;margin-top:2px}
 .blocos-sec{grid-column:1 / -1}
-.blocos{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);grid-template-areas:"A E" "A D" "A C";gap:18px;align-items:start}
-@media (max-width:820px){.blocos{grid-template-columns:minmax(0,1fr);grid-template-areas:"A" "E" "D" "C"}}
+.blocos{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);grid-template-areas:"A E" "B D" "B C";gap:18px;align-items:start}
+@media (max-width:820px){.blocos{grid-template-columns:minmax(0,1fr);grid-template-areas:"A" "B" "E" "D" "C"}}
 .bloco{border:1.5px solid var(--ink);border-radius:18px;box-shadow:var(--shadow-sm);background:var(--paper);padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
 .bloco-h{display:flex;align-items:center;gap:8px;border:0;background:transparent;padding:0;cursor:pointer;text-align:left;font:inherit;color:inherit}
 .bloco-h b{font-size:15px;font-weight:800;margin-right:auto}
@@ -98,6 +98,7 @@ button.tile:active,button.prow:active{transform:translate(3px,3px);box-shadow:1p
 .bloco .arm:hover{fill:#33449a}
 .bloco .arm-n{fill:#fff;font:800 24px var(--f);pointer-events:none;text-anchor:middle;dominant-baseline:central}
 .bloco .ctx{fill:#e4e4de}
+.bloco .ctx.tsi{fill:#e7c9e4}
 .bloco .ctx-t{fill:#8a8a84;font:700 11px var(--f);text-anchor:middle;dominant-baseline:central;pointer-events:none}
 .bloco .corr{fill:#f3f3ee}
 .bloco .z{cursor:pointer;stroke-width:1.5}
@@ -637,26 +638,29 @@ document.addEventListener('input', e=>{ if(e.target.matches('input[data-f]')){ c
 
 /* ---------- complexos desenhados como na planta (retos e alinhados) ---------- */
 const COMPLEXOS = [
-  { id:'A', nome:'Complexo 01 a 11 e AR TSI', arms:['01','02','03','04','05','06','TSI','07','08','09','10','11'] },
+  { id:'A', nome:'Complexo 04 a 09 e AR TSI', arms:['04','05','06','TSI','07','08','09'] },
+  { id:'B', nome:'Complexo 01 a 03, 10 e 11', arms:['01','02','03','10','11'] },
   { id:'E', nome:'Complexo 17 a 24', arms:['17','18','19','20','21','22','23','24'] },
   { id:'D', nome:'Complexo 13 a 16', arms:['13','14','15','16'] },
   { id:'C', nome:'Armazém 12', arms:['12'] } ];
 const blocoDe = a => (COMPLEXOS.find(c=>c.arms.includes(a))||{}).id || '';
 // desenho de cada complexo: a = armazém, z = área (antecâmara/varanda), c = contexto, k = corredor
 const DESENHO = (()=>{
-  const A = { w:440, h:590, e:[] }, Y0 = 40, RH = 92, AH = 84;
-  const row = i => Y0 + i*RH;
-  ['06','05','04','03','02','01'].forEach((n,i)=>A.e.push({ t:'a', id:n, x:0, y:row(i), w:110, h:AH }));
-  ['07','08','09','10','11'].forEach((n,i)=>A.e.push({ t:'a', id:n, x:330, y:row(i), w:110, h:AH }));
-  A.e.push({ t:'k', x:114, y:Y0, w:212, h:6*RH-8 });
-  A.e.push({ t:'a', id:'TSI', x:172, y:row(0), w:96, h:2*RH-8, lbl:'AR TSI' });
-  A.e.push({ t:'c', x:186, y:row(2)+10, w:68, h:64, lbl:'TSI' }, { t:'c', x:186, y:row(3)+4, w:68, h:56, lbl:'Convivência' });
-  ['06','05','04'].forEach((n,i)=>A.e.push({ t:'z', l:'ANT C'+(+n), x:118, y:row(i)+6, w:20, h:AH-12 }));
-  ['03','02','01'].forEach((n,i)=>A.e.push({ t:'z', l:'VARANDA C'+(+n), x:118, y:row(i+3)+6, w:20, h:AH-12 }));
-  A.e.push({ t:'z', l:'VARANDA C6', x:8, y:Y0-30, w:94, h:20 });
-  A.e.push({ t:'z', l:'ANT TSI 25', x:146, y:row(0)+6, w:20, h:2*RH-20 }, { t:'z', l:'ANT TSI 25', x:274, y:row(0)+6, w:20, h:2*RH-20, dup:1 });
-  ['07','08','09'].forEach((n,i)=>A.e.push({ t:'z', l:'ANT C'+(+n), x:302, y:row(i)+6, w:20, h:AH-12 }));
-  ['10','11'].forEach((n,i)=>A.e.push({ t:'z', l:'VARANDA C'+(+n), x:302, y:row(i+3)+6, w:20, h:AH-12 }));
+  // print 1: 06-05-04 | antecâmara | AR TSI | antecâmara | 07-08-09 (coluna da direita um pouco mais baixa); TSI abaixo do AR TSI
+  const RH = 92, AH = 84;
+  const A = { w:440, h:362, e:[] }, ya = i => 34 + i*RH, yb = i => 34 + 46 + i*RH;
+  A.e.push({ t:'k', x:114, y:34, w:212, h:3*RH+38 });
+  ['06','05','04'].forEach((n,i)=>A.e.push({ t:'a', id:n, x:0, y:ya(i), w:110, h:AH }, { t:'z', l:'ANT C'+(+n), x:118, y:ya(i)+6, w:20, h:AH-12 }));
+  ['07','08','09'].forEach((n,i)=>A.e.push({ t:'a', id:n, x:330, y:yb(i), w:110, h:AH }, { t:'z', l:'ANT C'+(+n), x:302, y:yb(i)+6, w:20, h:AH-12 }));
+  A.e.push({ t:'z', l:'VARANDA C6', x:8, y:4, w:94, h:20 });
+  A.e.push({ t:'a', id:'TSI', x:172, y:ya(0)+20, w:96, h:2*RH-8, lbl:'AR TSI' });
+  A.e.push({ t:'z', l:'ANT TSI 25', x:146, y:ya(0)+26, w:20, h:2*RH-20 }, { t:'z', l:'ANT TSI 25', x:274, y:ya(0)+26, w:20, h:2*RH-20, dup:1 });
+  A.e.push({ t:'c', x:190, y:ya(2)+34, w:60, h:70, lbl:'TSI', cls:'tsi' });
+  // print 5: 03-02-01 com varanda à direita | convivência | 10-11 com varanda à esquerda
+  const B = { w:440, h:276, e:[] }, yc = i => i*RH;
+  ['03','02','01'].forEach((n,i)=>B.e.push({ t:'a', id:n, x:0, y:yc(i), w:110, h:AH }, { t:'z', l:'VARANDA C'+(+n), x:122, y:yc(i)+6, w:20, h:AH-12 }));
+  ['10','11'].forEach((n,i)=>B.e.push({ t:'a', id:n, x:330, y:yc(i)+46, w:110, h:AH }, { t:'z', l:'VARANDA C'+(+n), x:298, y:yc(i)+52, w:20, h:AH-12 }));
+  B.e.push({ t:'c', x:180, y:0, w:80, h:64, lbl:'Convivência' });
   const C = { w:150, h:200, e:[ { t:'z', l:'VARANDA C12', x:24, y:4, w:102, h:20 }, { t:'a', id:'12', x:20, y:34, w:110, h:166 } ] };
   const D = { w:440, h:176, e:[ { t:'k', x:186, y:0, w:68, h:176 },
     { t:'a', id:'13', x:0, y:0, w:180, h:84 }, { t:'a', id:'14', x:0, y:92, w:180, h:84 }, { t:'a', id:'15', x:260, y:0, w:180, h:84 }, { t:'a', id:'16', x:260, y:92, w:180, h:84 },
@@ -670,7 +674,7 @@ const DESENHO = (()=>{
     { t:'z', l:'ANT C18', x:8, y:158, w:164, h:18 }, { t:'z', l:'ANT C20', x:268, y:158, w:164, h:18 },
     { t:'z', l:'ANT C21', x:8, y:204, w:164, h:18 }, { t:'z', l:'ANT C23', x:268, y:204, w:164, h:18 },
     { t:'z', l:'ANT C22', x:188, y:234, w:28, h:62 }, { t:'z', l:'ANT C24', x:224, y:234, w:28, h:62 } ] };
-  return { A, C, D, E };
+  return { A, B, C, D, E };
 })();
 const COR_FAIXA = h => h>=72 ? '#ff6b6b' : h>=48 ? '#ff9f6b' : h>=24 ? '#ffd36b' : '#a6e86e';
 const normLocal = l => String(l||'').trim().toUpperCase().replace(/\s+/g,' ');
@@ -684,7 +688,7 @@ function desenharMapa(ativos, agora){
     const d = DESENHO[c.id]; let svg = `<svg viewBox="-4 -4 ${d.w+8} ${d.h+8}" style="max-width:${Math.round(d.w*1.25)}px;margin:0 auto" role="img" aria-label="${esc(c.nome)}">`, selos = '', tot = 0;
     d.e.forEach(e=>{
       if(e.t==='k') svg += `<rect class="corr" x="${e.x}" y="${e.y}" width="${e.w}" height="${e.h}" rx="6"/>${e.lbl?`<text class="ctx-t" x="${e.x+e.w/2}" y="${e.y+e.h/2}">${e.lbl.toUpperCase()}</text>`:''}`;
-      if(e.t==='c') svg += `<rect class="ctx" x="${e.x}" y="${e.y}" width="${e.w}" height="${e.h}" rx="6"/><text class="ctx-t" x="${e.x+e.w/2}" y="${e.y+e.h/2}">${e.lbl}</text>`;
+      if(e.t==='c') svg += `<rect class="ctx ${e.cls||''}" x="${e.x}" y="${e.y}" width="${e.w}" height="${e.h}" rx="6"/><text class="ctx-t" x="${e.x+e.w/2}" y="${e.y+e.h/2}">${e.lbl}</text>`;
       if(e.t==='a'){
         const areas = d.e.filter(z=>z.t==='z' && armDe(z.l)===e.id && !z.dup).map(z=>z.l);
         const linhas = areas.map(l=>{ const i=info(l); return `${esc(l)}: ${i.n ? i.n+' lote(s)'+(i.h24?' · '+i.h24+' acima de 24 h':'') : 'vazia'}`; }).join('<br>');
