@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#173f35">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>LASDM · Amostras</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script src="regras.js"></script>
+<style>
+/* App de uma coluna para celular: cabeçalho fixo, navegação inferior grande, folhas (sheets) para cada amostra */
+:root{
+  --bg:#eef3f0; --surface:#ffffff; --ink:#173f35; --muted:#55706a; --line:#d2ded9;
+  --accent:#1f7a5c; --accent-ink:#ffffff; --frost:#dcece5;
+  --ok:#1d7a4f; --warn:#a85f00; --bad:#b3261e; --warn-bg:#fff2dc; --bad-bg:#fde7e5; --ok-bg:#e1f3e9;
+  --f-ui:"IBM Plex Sans Condensed","Roboto Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-code:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:16px;line-height:1.4;-webkit-tap-highlight-color:transparent}
+button,input,select{font:inherit;color:inherit}
+.app{min-height:100%;display:flex;flex-direction:column;padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}
+header.top{position:sticky;top:0;z-index:20;background:var(--ink);color:#f2f7f4;
+  padding:calc(10px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px));
+  display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{display:flex;flex-direction:column;line-height:1.1}
+.brand b{font-size:18px;letter-spacing:.02em}
+.brand small{font-size:12px;opacity:.75;text-transform:uppercase;letter-spacing:.08em}
+.syncbadge{font-size:12px;font-weight:700;border-radius:6px;padding:4px 8px;white-space:nowrap;border:0;cursor:pointer;background:rgba(255,255,255,.14);color:inherit}
+.syncbadge.ok{background:#1d7a4f;color:#fff}.syncbadge.pend{background:#a85f00;color:#fff}.syncbadge.err{background:#b3261e;color:#fff}
+.hdr-right{display:flex;gap:8px;align-items:center}
+.userchip{font-size:12px;font-weight:700;border-radius:6px;padding:4px 8px;border:1px solid currentColor;background:transparent;color:inherit;cursor:pointer;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+main{flex:1;padding:16px max(16px,env(safe-area-inset-right,0px)) 16px max(16px,env(safe-area-inset-left,0px));max-width:720px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+section.view{display:flex;flex-direction:column;gap:14px}
+h2{font-size:20px;margin:0;text-wrap:balance}
+h3{font-size:13px;margin:0;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px}
+label.f{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+input[type=text],input[type=password],input[type=search],input[type=number],select{width:100%;min-height:48px;border:1.5px solid var(--line);border-radius:8px;background:var(--bg);padding:10px 12px;font-size:17px;text-transform:none;letter-spacing:0;font-weight:500;color:var(--ink)}
+input:focus,select:focus,button:focus-visible{outline:3px solid var(--accent);outline-offset:1px}
+.btn{min-height:52px;border:0;border-radius:8px;padding:12px 16px;font-weight:700;font-size:17px;background:var(--accent);color:var(--accent-ink);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;text-align:center}
+.btn.sec{background:var(--frost);color:var(--ink)}
+.btn.ghost{background:transparent;border:1.5px solid var(--line);color:var(--ink)}
+.btn.danger{background:var(--bad);color:#fff}
+.btn.sm{min-height:40px;font-size:15px;padding:8px 12px}
+.btn:disabled{opacity:.5}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.row>*{flex:1 1 140px}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.reader-wrap{position:relative;background:#000;border-radius:10px;overflow:hidden;aspect-ratio:1/1;max-width:100%}
+#video{width:100%;height:100%;object-fit:cover;display:block}
+.aim{position:absolute;inset:16%;border:3px solid rgba(255,255,255,.85);border-radius:12px;box-shadow:0 0 0 999px rgba(0,0,0,.35);pointer-events:none}
+.camtools{position:absolute;right:10px;top:10px;display:flex;gap:8px}
+.camtools button{min-height:44px;border:0;border-radius:22px;padding:0 14px;background:rgba(0,0,0,.6);color:#fff;font-weight:700}
+.reader-idle{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:#d3e9df;text-align:center;padding:24px}
+.reader-idle svg{width:72px;height:72px;opacity:.8}
+.banner{background:var(--bad-bg);color:var(--bad);border:1.5px solid var(--bad);border-radius:10px;padding:12px;font-weight:600}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;cursor:pointer;text-align:left}
+.stat .n{font-family:var(--f-code);font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+.stat .t{font-size:13px;color:var(--muted);margin-top:4px}
+.stat.warn{border-color:var(--warn);background:var(--warn-bg)}
+.list{display:flex;flex-direction:column;gap:8px}
+.item{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:start;cursor:pointer;text-align:left;width:100%}
+.item .prot{font-family:var(--f-code);font-weight:700;font-size:16px}
+.item .meta{font-size:14px;color:var(--muted);grid-column:1/-1}
+.item .side{text-align:right;font-size:13px;color:var(--muted);white-space:nowrap}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.pill{display:inline-block;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;letter-spacing:.03em;vertical-align:middle;border:1px solid rgba(0,0,0,.12)}
+.pill.ok{background:var(--ok-bg);color:var(--ok)} .pill.warn{background:var(--warn-bg);color:var(--warn)} .pill.bad{background:var(--bad-bg);color:var(--bad)} .pill.mut{background:var(--line);color:var(--muted)} .pill.acc{background:var(--frost);color:var(--accent)}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;border:1.5px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{min-height:46px;border:0;background:var(--bg);font-weight:700;font-size:15px;cursor:pointer;padding:4px}
+.seg button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink)}
+.kv{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:6px 10px;font-size:15px;align-items:baseline}
+.kv dt{color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.04em}
+.kv dd{margin:0;font-weight:600;word-break:break-word}
+.kv .ck{font-size:13px;font-weight:700;white-space:nowrap}
+.ck.ok{color:var(--ok)} .ck.bad{color:var(--bad)} .ck.mut{color:var(--muted)}
+.posbig{font-family:var(--f-code);font-size:21px;font-weight:700;letter-spacing:.02em;text-align:center;background:var(--frost);border-radius:10px;padding:14px 10px;line-height:1.25}
+.posbig small{display:block;font-family:var(--f-ui);font-size:14px;font-weight:600;color:var(--muted);letter-spacing:0}
+.bar{height:8px;border-radius:4px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:4px}
+.prat{display:flex;flex-direction:column;gap:8px;cursor:pointer;text-align:left;width:100%}
+.prat .hd{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.prat .num{font-family:var(--f-code);font-size:22px;font-weight:700}
+.swatch{display:inline-block;width:12px;height:12px;border-radius:3px;border:1px solid rgba(0,0,0,.25);vertical-align:-1px;margin-right:4px}
+.lgrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.lcell{border:1.5px solid var(--line);border-radius:8px;padding:6px 4px;text-align:center;background:var(--surface);cursor:pointer;font-size:12px}
+.lcell b{display:block;font-family:var(--f-code);font-size:14px}
+.lcell.cheia{border-color:var(--accent);background:var(--frost)}
+.lcell.parcial{border-color:var(--accent)}
+.okbox{background:var(--surface);margin:auto;width:min(92%,440px);border-radius:16px;padding:26px 20px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
+.okicon{width:68px;height:68px;border-radius:50%;background:var(--ok);color:#fff;display:flex;align-items:center;justify-content:center}
+.okicon svg{width:42px;height:42px}
+.spinner{width:36px;height:36px;border-radius:50%;border:4px solid var(--line);border-top-color:var(--accent);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;color:var(--muted);padding:24px 12px;border:1.5px dashed var(--line);border-radius:10px}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--surface);border-top:1px solid var(--line);
+  display:grid;grid-template-columns:repeat(5,1fr);padding:0 env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)}
+nav.tabs button{background:none;border:0;min-height:68px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer}
+nav.tabs button svg{width:24px;height:24px}
+nav.tabs button[aria-current=page]{color:var(--accent)}
+nav.tabs button.scan span.ic{background:var(--accent);border-radius:12px;padding:6px 14px;display:flex;color:#fff}
+.sheet-bg{position:fixed;inset:0;background:rgba(5,20,15,.55);z-index:50;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--surface);width:100%;max-width:720px;border-radius:16px 16px 0 0;max-height:94vh;overflow:auto;
+  padding:18px max(16px,env(safe-area-inset-right,0px)) calc(18px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:12px}
+.sheet>*{flex-shrink:0}
+.alert{border-radius:8px;padding:10px 12px;font-size:15px;font-weight:500}
+.alert.bad{background:var(--bad-bg);color:var(--bad);border:1px solid var(--bad)}
+.alert.warn{background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn)}
+.alert.ok{background:var(--ok-bg);color:var(--ok);border:1px solid var(--ok)}
+.raw{white-space:pre-wrap;font-family:var(--f-code);font-size:12px;color:var(--muted);word-break:break-all;background:var(--bg);border-radius:6px;padding:8px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(86px + env(safe-area-inset-bottom,0px));z-index:70;background:var(--ink);color:#fff;padding:12px 16px;border-radius:8px;font-weight:600;max-width:calc(100% - 32px);text-align:center}
+.small{font-size:13px;color:var(--muted)}
+.mono{font-family:var(--f-code)}
+.thumb{width:100%;max-height:220px;object-fit:contain;border-radius:8px;background:#000}
+.loginscr{position:fixed;inset:0;z-index:55;background:var(--bg);display:flex;align-items:center;justify-content:center;overflow:auto;padding:16px}
+.loginbox{width:100%;max-width:400px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px 18px;display:flex;flex-direction:column;gap:12px}
+.loginlogo{width:56px;height:56px;border-radius:14px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center}
+.loginlogo svg{width:32px;height:32px}
+.urow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.urow .actions{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
+.chk{display:flex;gap:10px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+.chk input{width:22px;height:22px}
+table.rg{border-collapse:collapse;width:100%;font-size:13px}
+table.rg td{border:1px solid var(--line);padding:6px}
+/* Etiquetas de linha (impressão) */
+#printArea{display:none}
+.etq{border:2px solid #000;width:9.4cm;color:#000;background:#fff;font-family:Arial,Helvetica,sans-serif;break-inside:avoid;page-break-inside:avoid}
+.etq .t{text-align:center;font-weight:800;font-size:15pt;letter-spacing:.12em;padding:4px 6px 0}
+.etq .c{text-align:center;font-weight:800;font-size:17pt;padding:0 6px 4px;border-bottom:2px solid #000;letter-spacing:.03em}
+.etq .cols{display:grid;grid-template-columns:1fr 1fr}
+.etq .cols>div{padding:4px 6px 6px;text-align:center}
+.etq .cols>div+div{border-left:2px dashed #000}
+.etq .cols b{display:block;font-size:12pt}
+.etq .cols span{display:block;font-size:12pt;font-weight:600;line-height:1.35}
+.etqs{display:flex;flex-wrap:wrap;gap:10px}
+@media print{
+  body *{visibility:hidden}
+  #printArea,#printArea *{visibility:visible}
+  #printArea{display:block;position:absolute;left:0;top:0;width:100%}
+  @page{margin:10mm}
+}
+@media (max-width:420px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.lgrid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (prefers-reduced-motion:no-preference){.sheet{animation:up .18s ease-out}@keyframes up{from{transform:translateY(24px);opacity:.6}}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand"><b>LASDM · Amostras</b><small>Arquivo refrigerado</small></div>
+    <div class="hdr-right"><button class="syncbadge" id="syncBadge" hidden></button><button class="userchip" id="userChip" hidden></button></div>
+  </header>
+
+  <main>
+    <!-- BIPAR -->
+    <section class="view" id="v-bipar">
+      <div class="banner" id="ctxBanner" hidden></div>
+      <div class="reader-wrap">
+        <video id="video" playsinline muted hidden></video>
+        <div class="aim" id="aim" hidden></div>
+        <div class="camtools" id="camTools" hidden><button id="btnTorch" hidden>Lanterna</button></div>
+        <div class="reader-idle" id="readerIdle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 7V4h3M21 7V4h-3M3 17v3h3M21 17v3h-3"/><rect x="7" y="7" width="4" height="4"/><rect x="13" y="13" width="4" height="4"/><path d="M13 7h4v4M7 13h4v4"/></svg>
+          <div>Aponte para a etiqueta da amostra (QR e texto visíveis).<br>Ao ler o QR, o app tira a foto da etiqueta e confere com as planilhas.</div>
+          <button class="btn" id="btnStart">Abrir câmera</button>
+          <div class="small" style="color:#a9cbbd" id="camMsg"></div>
+        </div>
+      </div>
+      <div class="row">
+        <button class="btn ghost" id="btnStop" hidden>Parar câmera</button>
+        <label class="btn sec" style="cursor:pointer" for="fotoEtq">Foto da etiqueta</label>
+        <button class="btn sec" id="btnManual">Digitar protocolo</button>
+      </div>
+      <input type="file" id="fotoEtq" accept="image/*" capture="environment" hidden>
+      <div class="card" id="camHelp" hidden></div>
+      <div class="card" id="lastCard" hidden></div>
+    </section>
+
+    <!-- ARQUIVO -->
+    <section class="view" id="v-arquivo" hidden>
+      <div class="row" style="align-items:center"><h2 style="flex:2 1 auto">Arquivo refrigerado</h2><button class="btn sm" style="flex:0 0 auto" id="btnNovaPrat">+ Prateleira</button></div>
+      <div class="stats" id="statsArq"></div>
+      <div class="list" id="listPrat"></div>
+    </section>
+
+    <!-- AMOSTRAS -->
+    <section class="view" id="v-amostras" hidden>
+      <h2>Amostras</h2>
+      <input type="search" id="qAm" placeholder="Protocolo, cultivar ou lote…" aria-label="Buscar amostra">
+      <div class="seg" id="fAm" role="group" aria-label="Filtro">
+        <button data-f="ARQUIVO" aria-pressed="true">Arquivo</button><button data-f="SALA" aria-pressed="false">Em salas</button><button data-f="PEND" aria-pressed="false">Pendências</button><button data-f="TODAS" aria-pressed="false">Todas</button>
+      </div>
+      <div class="list" id="listAm"></div>
+    </section>
+
+    <!-- ETIQUETAS -->
+    <section class="view" id="v-etiquetas" hidden>
+      <h2>Etiquetas das linhas</h2>
+      <div class="small">Identificação das linhas de emblocamento: tipo de remessa, P. (prateleira) | A. (andar) | L. (linha) e as sequências de protocolos de Trás e da Frente.</div>
+      <div class="grid2">
+        <label class="f">Prateleira<select id="eqPrat"></select></label>
+        <label class="f">Andar<select id="eqAndar"><option value="0">Todos</option><option>1</option><option>2</option><option>3</option><option>4</option></select></label>
+      </div>
+      <div class="list" id="listEtq"></div>
+      <div class="row"><button class="btn ghost" id="eqTodas">Marcar todas</button><button class="btn" id="eqImprimir">Imprimir etiquetas</button></div>
+    </section>
+
+    <!-- MAIS -->
+    <section class="view" id="v-mais" hidden>
+      <h2>Mais</h2>
+      <div class="card">
+        <h3>Planilha Google · banco de dados</h3>
+        <div class="small">Todos os celulares e o painel usam a mesma planilha. Sem internet, os movimentos ficam na fila e são enviados quando a conexão voltar.</div>
+        <label class="f">Endereço do app da planilha<input type="text" id="cfgUrl" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off" inputmode="url"></label>
+        <button class="btn" id="btnCfgSave">Salvar e testar</button>
+        <div class="raw" id="syncInfo">Planilha não configurada.</div>
+      </div>
+      <div class="card">
+        <h3>Planilhas de referência</h3>
+        <div class="small">Usadas para conferir a etiqueta (protocolo, cultivar, tipo de remessa) e preencher os dados. Não são obrigatórias: sem elas o app registra com os dados digitados. As planilhas do sistema e manual são enviadas pelo painel.</div>
+        <div class="raw" id="refInfo">—</div>
+        <button class="btn sec" id="btnRef">Atualizar referência agora</button>
+      </div>
+      <div class="card">
+        <h3>Painel</h3>
+        <div class="small">Indicadores, ocupação das prateleiras, salas, movimentos e conciliação com as planilhas.</div>
+        <a class="btn sec" href="painel.html" target="_blank" rel="noopener">Abrir painel</a>
+      </div>
+      <div class="card">
+        <h3>Regras de armazenamento</h3>
+        <div class="small">Uma prateleira só recebe amostras com o <b>mesmo perfil</b>: mesma cultura, mesma condição de tratamento, INOVA GENÉTICA separada dos demais produtores, mesma embalagem e tipos de remessa do mesmo grupo de cor.</div>
+        <table class="rg" id="tabRegras"></table>
+      </div>
+      <div class="card">
+        <h3>Usuários</h3>
+        <div class="small">Somente administradores: cadastro de usuários e zerar dados de teste.</div>
+        <button class="btn sec" id="btnUsuarios">Gerenciar usuários</button>
+      </div>
+      <div class="small" style="text-align:center" id="versao">Versão 2026.10.23</div>
+    </section>
+  </main>
+
+  <nav class="tabs" aria-label="Navegação">
+    <button data-v="arquivo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M4 9h16M4 15h16"/></svg>Arquivo</button>
+    <button data-v="amostras"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 3h10v18H7z"/><path d="M10 7h4M10 11h4"/></svg>Amostras</button>
+    <button data-v="bipar" class="scan"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V4h3M21 7V4h-3M3 17v3h3M21 17v3h-3M7 12h10"/></svg></span>Bipar</button>
+    <button data-v="etiquetas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12l9-9h8v8l-9 9z"/><circle cx="16" cy="8" r="1.5"/></svg>Etiquetas</button>
+    <button data-v="mais"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>Mais</button>
+  </nav>
+</div>
+
+<div id="sheetHost"></div>
+<div id="printArea"></div>
+<div class="loginscr" id="loginScr">
+  <form class="loginbox" id="loginForm" autocomplete="on">
+    <div class="loginlogo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 3h6M10 3v6l-5 9a2 2 0 002 3h10a2 2 0 002-3l-5-9V3"/></svg></div>
+    <h2 id="lgTit">LASDM · Amostras</h2>
+    <div class="small" id="lgSub">Rastreabilidade das amostras do arquivo refrigerado. Entre com o seu usuário e senha.</div>
+    <label class="f" id="lgNomeBox" hidden>Seu nome<input type="text" id="lgNome" autocomplete="name"></label>
+    <label class="f">Usuário<input type="text" id="lgUsuario" autocomplete="username" autocapitalize="none" spellcheck="false"></label>
+    <label class="f">Senha<input type="password" id="lgSenha" autocomplete="current-password"></label>
+    <label class="f" id="lgSenha2Box" hidden>Repita a senha<input type="password" id="lgSenha2" autocomplete="new-password"></label>
+    <div id="lgMsg"></div>
+    <button class="btn" type="submit" id="lgBtn">Entrar</button>
+    <div class="small" id="lgUrlBox" hidden>
+      Primeiro uso neste aparelho: informe o endereço da planilha.
+      <input type="text" id="lgUrl" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off" inputmode="url" style="margin-top:6px">
+    </div>
+  </form>
+</div>
+
+<script>
+'use strict';
+const L = window.LASDM;
+/* Endereço do App da Web da planilha do LASDM (preencher após implantar o Apps Script; também pode ser informado no app) */
+const URL_PLANILHA = '';
+const KEY = 'lasdm.v1';
+const $ = s => document.querySelector(s);
+const esc = s => String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad = n => String(n).padStart(2,'0');
+const dkey = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const br = d => `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`;
+const hora = d => `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+function dur(ms){ if(!ms||ms<0) return '0 min'; const m=Math.floor(ms/60000), d=Math.floor(m/1440), h=Math.floor((m%1440)/60); return d ? d+'d '+h+'h' : h ? h+'h '+pad(m%60)+'min' : (m%60)+' min'; }
+
+/* ================== DADOS LOCAIS ================== */
+let db, SESSAO = null, REMOTO = { movimentos:[], prateleiras:[], refInfo:{}, em:0 }, REF = new Map();
+function load(){
+  try{ db = JSON.parse(localStorage.getItem(KEY)) || {}; }catch(e){ db = {}; }
+  db = Object.assign({ url:URL_PLANILHA, mov:[], filaPrat:[], prateleiras:[], credenciais:{}, ultimoUsuario:'', embPadrao:'CX1', vinculos:{}, refEm:0 }, db);
+  if(URL_PLANILHA && !db.url) db.url = URL_PLANILHA;
+}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(db)); }catch(e){ toast('Memória do aparelho cheia: sincronize e libere espaço.'); } }
+
+/* fotos e cache da referência ficam no IndexedDB */
+let idbP = null;
+function idb(){ if(!idbP) idbP = new Promise((res,rej)=>{ const q = indexedDB.open('lasdm',1); q.onupgradeneeded=()=>{ q.result.createObjectStore('fotos'); q.result.createObjectStore('cache'); }; q.onsuccess=()=>res(q.result); q.onerror=()=>rej(q.error); }); return idbP; }
+async function idbOp(store, modo, fn){ const d = await idb(); return new Promise((res,rej)=>{ const t = d.transaction(store, modo); const st = t.objectStore(store); let out; const q = fn(st); if(q) q.onsuccess = ()=>out = q.result; t.oncomplete = ()=>res(out); t.onerror = ()=>rej(t.error); }); }
+const fotoPut = (id, v) => idbOp('fotos','readwrite', st=>st.put(v, id));
+const fotoGet = id => idbOp('fotos','readonly', st=>st.get(id)).catch(()=>null);
+const fotoDel = id => idbOp('fotos','readwrite', st=>st.delete(id)).catch(()=>{});
+const cachePut = (k, v) => idbOp('cache','readwrite', st=>st.put(v, k)).catch(()=>{});
+const cacheGet = k => idbOp('cache','readonly', st=>st.get(k)).catch(()=>null);
+async function comprimirFoto(bmp, lado=1280, q=0.72){
+  const sc = Math.min(1, lado/Math.max(bmp.width, bmp.height));
+  const c = document.createElement('canvas'); c.width = Math.round(bmp.width*sc); c.height = Math.round(bmp.height*sc);
+  c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+  return c.toDataURL('image/jpeg', q);
+}
+
+/* ================== ESTADO ================== */
+const quem = () => SESSAO ? SESSAO.nome : '';
+function todosMov(){
+  const meus = new Set(db.mov.map(m=>m.id));
+  return REMOTO.movimentos.filter(m=>!meus.has(m.id)).concat(db.mov);
+}
+function prateleiras(){
+  const m = new Map(); REMOTO.prateleiras.forEach(p=>m.set(p.id, p)); (db.prateleiras||[]).forEach(p=>m.set(p.id, p)); db.filaPrat.forEach(p=>m.set(p.id, p));
+  return [...m.values()].filter(p=>p.situacao!=='Removida').sort((a,b)=>a.numero-b.numero);
+}
+let EST = {};
+function recompute(){ EST = L.estadoAtual(todosMov()); return EST; }
+const pendencias = () => db.mov.filter(m=>/^Conflito/.test(m.situacao||'') && !m.resolvido);
+
+/* ================== UI GERAL ================== */
+let toastT;
+function toast(msg){ let t = $('#toast'); if(!t){ t = document.createElement('div'); t.id='toast'; t.className='toast'; t.setAttribute('role','status'); document.body.appendChild(t); } t.textContent = msg; t.hidden=false; clearTimeout(toastT); toastT = setTimeout(()=>t.hidden=true, 3200); }
+function beep(ok=true){
+  try{ navigator.vibrate && navigator.vibrate(ok?80:[60,60,60]); }catch(e){}
+  try{ const a = new (window.AudioContext||window.webkitAudioContext)(); const o=a.createOscillator(), g=a.createGain(); o.frequency.value = ok?1250:320; g.gain.value=.12; o.connect(g).connect(a.destination); o.start(); o.stop(a.currentTime+(ok?.12:.3)); }catch(e){}
+}
+const grupoPill = g => { const G = L.GRUPOS[g] || L.GRUPOS.OUTROS; return `<span class="pill" style="background:${G.cor};color:${G.tinta}">${esc(G.curto)}</span>`; };
+const statusPill = e => !e || !e.status ? '<span class="pill mut">Nova</span>' : e.status==='ARQUIVO' ? '<span class="pill ok">No arquivo</span>' : e.status==='SALA' ? `<span class="pill warn">${esc(e.local)}</span>` : e.status==='BAIXA' ? '<span class="pill mut">Baixada</span>' : '<span class="pill mut">Registrada</span>';
+function fecharSheet(){ $('#sheetHost').innerHTML=''; resumeCam(); }
+function sheet(html, id='sbg'){ const host = $('#sheetHost'); host.innerHTML = `<div class="sheet-bg" id="${id}"><div class="sheet">${html}</div></div>`; $('#'+id).onclick = e=>{ if(e.target.id===id) fecharSheet(); }; return host; }
+function aguarde(msg){ $('#sheetHost').innerHTML = msg ? `<div class="sheet-bg"><div class="sheet" style="align-items:center;text-align:center;padding-block:32px"><div class="spinner" aria-hidden="true"></div><b>${esc(msg)}</b>${ocrWorker?'':'<div class="small">Na primeira vez leva alguns segundos a mais para baixar o leitor de texto.</div>'}</div></div>` : ''; }
+
+let viewAtual = 'bipar';
+function show(v){
+  viewAtual = v;
+  document.querySelectorAll('section.view').forEach(s=>s.hidden = s.id!=='v-'+v);
+  document.querySelectorAll('nav.tabs button').forEach(b=>{ if(b.dataset.v===v) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current'); });
+  if(v!=='bipar') stopCam();
+  render(); if(v!=='bipar') sincronizar();
+  window.scrollTo(0,0);
+}
+document.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>show(b.dataset.v));
+function render(){
+  recompute();
+  if(viewAtual==='arquivo') renderArquivo();
+  if(viewAtual==='amostras') renderAmostras();
+  if(viewAtual==='etiquetas') renderEtiquetas();
+  if(viewAtual==='mais') renderMais();
+  if(viewAtual==='bipar') renderUltimo();
+}
+
+/* ================== REFERÊNCIA (planilhas do sistema e manual) ================== */
+const REF_DIAS = 150;
+async function carregarRefLocal(){ const r = await cacheGet('ref'); if(r && r.lista){ REF = new Map(r.lista.map(x=>[x.prot, x])); } }
+async function baixarRef(forcar){
+  if(!db.url || !navigator.onLine) return;
+  if(!forcar && Date.now() - (db.refEm||0) < 6*3600000 && REF.size) return;
+  const d = new Date(); d.setDate(d.getDate()-REF_DIAS);
+  const j = await lerResposta(await fetch(db.url + '?acao=ref&desde=' + dkey(d), { redirect:'follow' }));
+  REF = new Map((j.ref||[]).map(x=>[x.prot, x])); db.refEm = Date.now(); save();
+  await cachePut('ref', { lista:[...REF.values()], em:Date.now() });
+}
+async function buscarRef(prot){
+  if(REF.has(prot)) return REF.get(prot);
+  if(db.url && navigator.onLine){
+    try{ const j = await lerResposta(await fetch(db.url + '?acao=ref&prot=' + encodeURIComponent(prot), { redirect:'follow' })); if(j.ref && j.ref[0]){ REF.set(prot, j.ref[0]); return j.ref[0]; } }catch(e){}
+  }
+  return null;
+}
+
+/* ================== CÂMERA (BarcodeDetector nativo + jsQR) ================== */
+const video = $('#video');
+const cnv = document.createElement('canvas'), cx = cnv.getContext('2d', { willReadFrequently:true });
+let stream = null, camOn = false, paused = false, detector, busy = false, lastRaw = '', lastAt = 0, torch = false;
+async function getDetector(){
+  if(detector !== undefined) return detector; detector = null;
+  try{ if('BarcodeDetector' in window){ const f = await BarcodeDetector.getSupportedFormats(); if(f.includes('qr_code')) detector = new BarcodeDetector({ formats:['qr_code'] }); } }catch(e){}
+  return detector;
+}
+function jsqrRegion(src, w, h, frac, maxSide, inv){
+  if(!window.jsQR) return null;
+  const cw = w*frac, ch = h*frac, sx = (w-cw)/2, sy = (h-ch)/2, sc = Math.min(1, maxSide/Math.max(cw,ch));
+  cnv.width = Math.max(1,Math.round(cw*sc)); cnv.height = Math.max(1,Math.round(ch*sc));
+  cx.drawImage(src, sx, sy, cw, ch, 0, 0, cnv.width, cnv.height);
+  const im = cx.getImageData(0, 0, cnv.width, cnv.height);
+  const r = jsQR(im.data, im.width, im.height, { inversionAttempts: inv||'dontInvert' });
+  return r && r.data ? r.data : null;
+}
+async function decodeFrame(){
+  const d = await getDetector();
+  if(d){ try{ const r = await d.detect(video); if(r.length) return r[0].rawValue; }catch(e){} }
+  const w = video.videoWidth, h = video.videoHeight; if(!w) return null;
+  return jsqrRegion(video, w, h, 0.68, 640) || jsqrRegion(video, w, h, 1, 900);
+}
+async function tick(){
+  if(!camOn) return;
+  if(!paused && !busy && video.readyState >= 2){ busy = true; try{ const t = await decodeFrame(); if(t && camOn && !paused) await onScan(t); }catch(e){} busy = false; }
+  setTimeout(tick, detector ? 100 : 180);
+}
+function ajudaCamera(msg){
+  $('#camMsg').textContent = 'A câmera não abriu. Veja abaixo como resolver.';
+  $('#camHelp').hidden = false;
+  $('#camHelp').innerHTML = `<h3>Como liberar a câmera</h3>
+    ${window.top!==window.self?'<div class="alert bad">O app está aberto dentro de uma pré-visualização. Abra o link https do app direto no Chrome.</div>':''}
+    <div class="small"><b>1.</b> Abra pelo endereço https no Chrome.<br><b>2.</b> Toque no ícone à esquerda do endereço → Permissões → Câmera → Permitir. Recarregue.<br><b>3.</b> Feche outros apps que estejam usando a câmera.<br>Enquanto isso, use <b>Foto da etiqueta</b>.</div>
+    <div class="raw">${esc(msg)}</div>`;
+}
+async function startCam(){
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.isSecureContext){ ajudaCamera('Câmera indisponível: a página precisa estar em https:// e aberta no navegador.'); return; }
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({ audio:false, video:{ facingMode:{ ideal:'environment' }, width:{ ideal:1920 }, height:{ ideal:1080 } } });
+    video.srcObject = stream; video.hidden = false; await video.play();
+    const track = stream.getVideoTracks()[0];
+    try{ await track.applyConstraints({ advanced:[{ focusMode:'continuous' }] }); }catch(e){}
+    let caps = {}; try{ caps = track.getCapabilities ? track.getCapabilities() : {}; }catch(e){}
+    $('#btnTorch').hidden = !caps.torch;
+    camOn = true; paused = false;
+    $('#readerIdle').hidden = true; $('#aim').hidden = false; $('#camTools').hidden = false; $('#btnStop').hidden = false; $('#camHelp').hidden = true;
+    await getDetector(); tick();
+    prepararOcr().catch(()=>{});
+  }catch(e){ stopCam(); ajudaCamera((e && e.name ? e.name+': ' : '') + (e && e.message ? e.message : e)); }
+}
+function stopCam(){
+  camOn = false; torch = false;
+  if(stream){ stream.getTracks().forEach(t=>t.stop()); stream = null; }
+  video.srcObject = null; video.hidden = true;
+  $('#readerIdle').hidden = false; $('#aim').hidden = true; $('#camTools').hidden = true; $('#btnStop').hidden = true;
+}
+function pauseCam(){ paused = true; }
+function resumeCam(){ paused = false; }
+// QR lido ao vivo: o próprio quadro da câmera vira a foto da etiqueta, e o texto é lido para conferir
+async function onScan(text){
+  const now = Date.now();
+  if(text===lastRaw && now-lastAt<4000) return;
+  lastRaw = text; lastAt = now;
+  pauseCam(); beep(true);
+  let bmp = null; try{ bmp = await createImageBitmap(video); }catch(e){}
+  await processarEtiqueta({ qr:text, bmp });
+}
+$('#btnStart').onclick = startCam;
+$('#btnStop').onclick = stopCam;
+$('#btnTorch').onclick = async () => { try{ torch = !torch; await stream.getVideoTracks()[0].applyConstraints({ advanced:[{ torch }] }); $('#btnTorch').textContent = torch?'Lanterna ✓':'Lanterna'; }catch(e){ toast('Lanterna indisponível neste aparelho.'); } };
+document.addEventListener('visibilitychange', ()=>{ if(document.hidden) stopCam(); });
+(function avisoContexto(){
+  const b = $('#ctxBanner');
+  if(window.top !== window.self){ b.hidden=false; b.textContent = 'Você está vendo o app dentro de uma pré-visualização. A câmera só funciona com o link https aberto direto no Chrome.'; }
+  else if(!window.isSecureContext){ b.hidden=false; b.textContent = 'Este endereço não é https: abra pelo link https no Chrome para usar a câmera.'; }
+})();
+
+/* ================== LEITURA DO TEXTO DA ETIQUETA (OCR) ==================
+   Etiqueta: QR em cima e o texto na vertical ("Prot: 17215/2026 · Rem.: 7046 · O720 I2X · TESTE"). */
+let ocrWorker = null, ocrPronto = null;
+function carregarScript(src){ return new Promise((res,rej)=>{ const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = ()=>rej(new Error('Não carregou o leitor de texto. Verifique a internet.')); document.head.appendChild(s); }); }
+function prepararOcr(){
+  if(!ocrPronto) ocrPronto = (async ()=>{
+    if(!window.Tesseract) await carregarScript('https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js');
+    if(!ocrWorker) ocrWorker = await Tesseract.createWorker('por');
+    return ocrWorker;
+  })().catch(e=>{ ocrPronto = null; throw e; });
+  return ocrPronto;
+}
+function canvasGirado(bmp, graus){
+  const g = ((graus % 360) + 360) % 360, deitado = g===90 || g===270;
+  const sc = Math.min(2.2, 1900/Math.max(bmp.width, bmp.height));
+  const w = Math.round(bmp.width*sc), h = Math.round(bmp.height*sc);
+  const c = document.createElement('canvas'); c.width = deitado ? h : w; c.height = deitado ? w : h;
+  const x = c.getContext('2d'); x.filter = 'grayscale(1) contrast(1.5)'; x.fillStyle = '#fff'; x.fillRect(0,0,c.width,c.height);
+  x.translate(c.width/2, c.height/2); x.rotate(g*Math.PI/180); x.drawImage(bmp, -w/2, -h/2, w, h);
+  return c;
+}
+async function ocrTexto(canvas, psm){ await prepararOcr(); await ocrWorker.setParameters({ tessedit_pageseg_mode: String(psm) }); const { data } = await ocrWorker.recognize(canvas); return data.text || ''; }
+const pontos = l => (l.prot?3:0) + (l.rem?1:0) + (l.remessa?1:0) + (l.cultivar?1:0);
+async function lerTextoEtiqueta(bmp, giroQR){
+  // o texto fica 90° em relação ao QR: tenta primeiro a rotação que deixa o texto em pé
+  const tent = giroQR!=null ? [giroQR+270, giroQR+90, giroQR] : [270, 90, 0, 180];
+  let melhor = { prot:'', rem:'', cultivar:'', remessa:'' }, bruto = '';
+  for(const g of tent){
+    const cv = canvasGirado(bmp, g);
+    for(const psm of [6, 11]){
+      const t = await ocrTexto(cv, psm), l = L.lerEtiquetaTexto(t);
+      if(pontos(l) > pontos(melhor)){ melhor = l; bruto = t; }
+      if(pontos(melhor) >= 5) return { lido:melhor, bruto };
+    }
+    if(melhor.prot) break;
+  }
+  return { lido:melhor, bruto };
+}
+async function lerQRdaImagem(bmp){
+  let texto = '', giro = null;
+  const ang = (a, b) => Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
+  const d = await getDetector();
+  if(d){ try{ const r = await d.detect(bmp); if(r.length){ texto = r[0].rawValue; const p = r[0].cornerPoints; if(p && p.length===4) giro = -Math.round(ang(p[0], p[1])/90)*90; } }catch(_){} }
+  if(!texto && window.jsQR){
+    for(const side of [1000, 1600, 700]){
+      const sc = Math.min(1, side/Math.max(bmp.width, bmp.height));
+      cnv.width = Math.round(bmp.width*sc); cnv.height = Math.round(bmp.height*sc); cx.drawImage(bmp, 0, 0, cnv.width, cnv.height);
+      const im = cx.getImageData(0, 0, cnv.width, cnv.height);
+      const r = jsQR(im.data, im.width, im.height, { inversionAttempts:'attemptBoth' });
+      if(r && r.data){ texto = r.data; giro = -Math.round(ang(r.location.topLeftCorner, r.location.topRightCorner)/90)*90; break; }
+    }
+  }
+  return { texto, giro };
+}
+$('#fotoEtq').onchange = async e => {
+  const f = e.target.files[0]; e.target.value=''; if(!f) return;
+  pauseCam(); aguarde('Lendo a etiqueta…');
+  let bmp; try{ try{ bmp = await createImageBitmap(f, { imageOrientation:'from-image' }); }catch(_){ bmp = await createImageBitmap(f); } }catch(err){ aguarde(''); toast('Não foi possível abrir a foto.'); resumeCam(); return; }
+  await processarEtiqueta({ bmp });
+};
+document.querySelector('label[for=fotoEtq]').addEventListener('click', ()=>{ prepararOcr().catch(()=>{}); });
+
+/* Junta QR + foto + texto lido e abre a ficha da amostra */
+async function processarEtiqueta({ qr, bmp }){
+  aguarde('Lendo a etiqueta…');
+  let foto = null, giro = null, lido = { prot:'', rem:'', cultivar:'', remessa:'' }, bruto = '', erroOcr = '';
+  try{
+    if(bmp){
+      foto = await comprimirFoto(bmp);
+      const q = await lerQRdaImagem(bmp); if(!qr && q.texto) qr = q.texto; giro = q.giro;
+      try{ const r = await lerTextoEtiqueta(bmp, giro); lido = r.lido; bruto = r.bruto; }catch(err){ erroOcr = err.message || String(err); }
+    }
+  }catch(err){ erroOcr = err.message || String(err); }
+  // protocolo: do QR (se trouxer) → do texto lido → de um QR já vinculado antes
+  let prot = L.normProt(qr||'') || lido.prot || (qr && db.vinculos[qr]) || '';
+  if(qr && lido.prot && !L.normProt(qr)){ db.vinculos[qr] = lido.prot; save(); }
+  aguarde('');
+  if(!prot){ beep(false); abrirDigitar({ foto, lido, qr, bruto, erroOcr }); return; }
+  await abrirAmostra(prot, { foto, lido, qr, bruto, erroOcr });
+}
+function abrirDigitar(ctx={}){
+  pauseCam();
+  sheet(`<h2>Protocolo da amostra</h2>
+    ${ctx.foto?`<img class="thumb" src="${ctx.foto}" alt="Foto da etiqueta">`:''}
+    ${ctx.foto?'<div class="alert warn">Não consegui ler o protocolo na etiqueta. Digite o número que aparece depois de "Prot.".</div>':''}
+    ${ctx.qr?`<div class="small">QR lido: <span class="mono">${esc(ctx.qr)}</span> (fica vinculado ao protocolo)</div>`:''}
+    <label class="f">Protocolo (ex.: 17215/2026)<input type="text" id="dgProt" inputmode="numeric" autocomplete="off" placeholder="17215/2026"></label>
+    <div class="row"><button class="btn ghost" id="dgCancel">Cancelar</button><button class="btn" id="dgOk">Continuar</button></div>`);
+  setTimeout(()=>$('#dgProt').focus(), 60);
+  $('#dgCancel').onclick = fecharSheet;
+  const ok = async () => { const p = L.normProt($('#dgProt').value); if(!p){ toast('Protocolo inválido.'); return; } if(ctx.qr){ db.vinculos[ctx.qr] = p; save(); } await abrirAmostra(p, ctx); };
+  $('#dgOk').onclick = ok; $('#dgProt').onkeydown = e=>{ if(e.key==='Enter') ok(); };
+}
+$('#btnManual').onclick = () => abrirDigitar();
+
+/* ================== FICHA DA AMOSTRA E MOVIMENTOS ================== */
+const CAMPOS = [['especie','Espécie'],['cultivar','Cultivar'],['lote','Lote/origem'],['produtor','Produtor'],['tipoAnalise','Tipo de análise'],['remessa','Tipo de remessa'],['tratamento','Tratamento'],['categoria','Categoria']];
+/* Confere a leitura com as planilhas. Se o protocolo lido não bate com a cultivar/remessa da etiqueta,
+   procura o protocolo "vizinho" (um dígito trocado pelo OCR) que bate e corrige. */
+async function conferirProtocolo(prot, lido, escolhido){
+  let ref = await buscarRef(prot);
+  if(escolhido || !lido || !lido.prot || lido.prot!==prot) return { prot, ref };
+  const nota = L.notaEtiqueta(lido, ref);
+  if(ref && nota >= 1) return { prot, ref };
+  if(!lido.cultivar && !lido.remessa) return { prot, ref };
+  const viz = L.protVizinhos(prot);
+  let cands = viz.filter(p=>REF.has(p)).map(p=>REF.get(p));
+  if(db.url && navigator.onLine){ try{ const j = await lerResposta(await fetch(db.url + '?acao=ref&prots=' + encodeURIComponent(viz.join(',')), { redirect:'follow' })); (j.ref||[]).forEach(r=>{ REF.set(r.prot, r); if(!cands.some(c=>c.prot===r.prot)) cands.push(r); }); }catch(e){} }
+  const bons = cands.map(r=>({ r, n:L.notaEtiqueta(lido, r), c:L.chanceTroca(prot, r.prot) })).filter(x=>x.n>=1 && x.n>nota).sort((a,b)=>b.n-a.n || b.c-a.c);
+  if(!bons.length) return { prot, ref };
+  if(bons.length===1 || bons[0].n > bons[1].n || bons[0].c > bons[1].c) return { prot:bons[0].r.prot, ref:bons[0].r, corrigido:prot, outros:bons.slice(1,4).filter(x=>x.n===bons[0].n).map(x=>x.r.prot) };
+  return { prot, ref, opcoes:bons.filter(x=>x.n===bons[0].n && x.c===bons[0].c).slice(0,4).map(x=>x.r.prot) };
+}
+async function abrirAmostra(prot, ctx={}){
+  pauseCam();
+  aguarde('Conferindo nas planilhas…');
+  const cf = await conferirProtocolo(prot, ctx.lido, ctx.escolhido);
+  ctx.opcoes = cf.opcoes || cf.outros || null; ctx.lidoProt = ctx.lidoProt || (ctx.lido && ctx.lido.prot);
+  if(cf.corrigido){ prot = cf.prot; ctx.corrigido = cf.corrigido; if(ctx.qr && !L.normProt(ctx.qr)){ db.vinculos[ctx.qr] = prot; save(); } }
+  const ref = cf.ref;
+  recompute();
+  const e = EST[prot];
+  aguarde('');
+  // dados: planilha de referência > último registro > digitação
+  const a = { protocolo:prot };
+  CAMPOS.forEach(([k])=>{ a[k] = (ref && ref[k]) || (e && e[k]) || ''; });
+  if(ref && ref.data) a.dataReceb = ref.data;
+  const ctxA = { prot, ref, e, ctx, a, emb: (e && e.embalagem) || db.embPadrao || 'CX1' };
+  telaAmostra(ctxA);
+}
+function validacaoTexto(c){
+  const v = [];
+  if(c.ref) v.push('Protocolo encontrado na planilha ' + (c.ref.origem||'')); else v.push('Protocolo não encontrado nas planilhas');
+  if(c.ctx.corrigido) v.push('Protocolo corrigido (lido ' + c.ctx.corrigido + ')');
+  if(c.ctx.lido){ const cc = L.confere(c.ctx.lido.cultivar, c.a.cultivar), cr = L.confere(c.ctx.lido.remessa, c.a.remessa);
+    if(cc!==null) v.push('Cultivar ' + (cc?'confere':'diverge (etiqueta: '+c.ctx.lido.cultivar+')'));
+    if(cr!==null) v.push('Remessa ' + (cr?'confere':'diverge (etiqueta: '+c.ctx.lido.remessa+')')); }
+  return v.join(' · ');
+}
+function telaAmostra(c){
+  const { prot, ref, e, ctx, a } = c;
+  const cls = L.classificar(a), G = L.GRUPOS[cls.grupo] || L.GRUPOS.OUTROS;
+  const lido = ctx.lido || {};
+  const ck = (k) => { if(!ctx.lido) return ''; const v = k==='cultivar' ? L.confere(lido.cultivar, a.cultivar) : k==='remessa' ? L.confere(lido.remessa, a.remessa) : null;
+    return v===null ? '' : v ? '<span class="ck ok">✓ etiqueta</span>' : `<span class="ck bad">⚠ etiqueta: ${esc(lido[k])}</span>`; };
+  const edit = !ref;   // sem planilha: dados digitados
+  const camposHTML = edit ? `
+    <div class="alert warn"><b>Não encontrada nas planilhas de referência.</b> Preencha os dados para aplicar as regras de armazenamento.${lido.cultivar||lido.remessa?' Os campos já vêm com o que foi lido na etiqueta.':''}</div>
+    <div class="grid2">
+      <label class="f">Espécie<select id="amEsp"><option value="SOJA">Soja</option><option value="MILHO">Milho</option><option value="OUTRA">Outra (amostra manual)</option></select></label>
+      <label class="f" id="amEspOutraBox" hidden>Qual espécie<input type="text" id="amEspOutra" placeholder="Ex.: FEIJÃO"></label>
+      <label class="f">Cultivar<input type="text" id="amCult"></label>
+      <label class="f">Tipo de remessa<select id="amRem"><option value="">—</option>${L.TIPOS_REMESSA.map(t=>`<option>${t}</option>`).join('')}</select></label>
+      <label class="f">Tipo de análise<select id="amTA"><option value="ANÁLISE PRÉVIA(CQI)">Prévia (CQI)</option><option value="ANÁLISE DEFINITIVA">Definitiva</option><option value="INTER|INTRALABORATO">Inter/Intralaboratorial</option></select></label>
+      <label class="f">Tratamento<input type="text" id="amTrat" placeholder="vazio = sem tratamento"></label>
+      <label class="f">Produtor<input type="text" id="amProd" placeholder="Ex.: DOIS MARCOS SEMENTES LTDA"></label>
+      <label class="f">Lote/origem<input type="text" id="amLote"></label>
+    </div>` : `
+    <dl class="kv">${CAMPOS.filter(([k])=>a[k]).map(([k,n])=>`<dt>${n}</dt><dd>${esc(a[k])}</dd><dd>${ck(k)}</dd>`).join('')}
+      ${a.dataReceb?`<dt>Recebida em</dt><dd>${esc(a.dataReceb)}</dd><dd></dd>`:''}</dl>`;
+  const situ = !e || !e.status ? 'Ainda não registrada no arquivo.' :
+    e.status==='ARQUIVO' ? `No arquivo desde ${br(new Date(e.desde))} · <b class="mono">${esc(L.textoSlot(e.slot, e.embalagem))}</b>` :
+    e.status==='SALA' ? `Em <b>${esc(e.local)}</b> há ${dur(Date.now()-e.desde)}${e.slot?` · posição reservada <span class="mono">${esc(L.textoSlot(e.slot, e.embalagem))}</span>`:''}` :
+    e.status==='BAIXA' ? `Baixada em ${br(new Date(e.desde))}.` : 'Registrada (tipo de remessa que não armazena).';
+  const pend = pendencias().find(m=>m.protocolo===prot);
+  sheet(`
+    <div class="row" style="align-items:center"><h2 style="flex:2 1 auto" class="mono">${esc(prot)}</h2>${statusPill(e)}</div>
+    <div class="chips" id="amChips"></div>
+    ${ctx.foto?`<img class="thumb" src="${ctx.foto}" alt="Foto da etiqueta">`:'<div class="small">Sem foto da etiqueta (protocolo digitado).</div>'}
+    ${ctx.erroOcr?`<div class="alert warn">Leitura do texto indisponível: ${esc(ctx.erroOcr)}</div>`:''}
+    ${ctx.corrigido?`<div class="alert ok">Protocolo corrigido pela planilha: a foto foi lida como <b class="mono">${esc(ctx.corrigido)}</b>, mas a cultivar e a remessa da etiqueta batem com <b class="mono">${esc(prot)}</b>.</div>`:''}
+    ${ctx.opcoes && ctx.opcoes.length?`<div class="alert warn">${ctx.corrigido?'Também bate com a etiqueta':'A etiqueta bate com mais de um protocolo'}. Confira o número impresso e toque no certo:<div class="row" style="margin-top:8px">${ctx.opcoes.concat(ctx.corrigido?[]:[]).map(p=>`<button class="btn sec sm mono" data-outro="${esc(p)}">${esc(p)}</button>`).join('')}</div></div>`:''}
+    ${ref && ctx.lido && L.notaEtiqueta(ctx.lido, ref) < 0 ? `<div class="alert bad"><b>Atenção:</b> os dados da etiqueta não batem com a planilha para este protocolo. Confira a etiqueta antes de continuar (ou toque em Fechar e digite o protocolo).</div>`:''}
+    ${pend?`<div class="alert bad">${esc(pend.situacao)}. Armazene novamente em outra posição.</div>`:''}
+    ${camposHTML}
+    <div class="card" style="background:var(--bg)"><h3>Situação atual</h3><div>${situ}</div></div>
+    <div><h3 style="margin-bottom:6px">Embalagem</h3><div class="seg" id="amEmb">${Object.entries(L.EMBALAGENS).map(([k,v])=>`<button data-emb="${k}" aria-pressed="${k===c.emb}">${v.nome}</button>`).join('')}</div></div>
+    <div id="amAcoes"></div>
+    <button class="btn ghost" id="amFechar">Fechar</button>`);
+  if(edit){
+    const es = $('#amEsp'); const espIni = L.up(a.especie||'SOJA'); es.value = ['SOJA','MILHO'].includes(espIni) ? espIni : 'OUTRA'; if(es.value==='OUTRA'){ $('#amEspOutraBox').hidden=false; $('#amEspOutra').value = espIni==='OUTRA'?'':a.especie; }
+    $('#amCult').value = a.cultivar || lido.cultivar || ''; $('#amRem').value = L.up(a.remessa||lido.remessa||'') ? (L.TIPOS_REMESSA.find(t=>L.up(t)===L.up(a.remessa||lido.remessa))||'') : '';
+    $('#amTA').value = a.tipoAnalise || 'ANÁLISE PRÉVIA(CQI)'; $('#amTrat').value = a.tratamento||''; $('#amProd').value = a.produtor||''; $('#amLote').value = a.lote||'';
+    const ler = () => { a.especie = es.value==='OUTRA' ? L.up($('#amEspOutra').value||'OUTRA') : es.value; a.cultivar = L.up($('#amCult').value); a.remessa = es.value==='OUTRA' ? '' : $('#amRem').value; a.tipoAnalise = $('#amTA').value; a.tratamento = L.up($('#amTrat').value); a.produtor = L.up($('#amProd').value); a.lote = $('#amLote').value.trim(); desenharAcoes(c); };
+    es.onchange = () => { $('#amEspOutraBox').hidden = es.value!=='OUTRA'; ler(); };
+    ['#amEspOutra','#amCult','#amRem','#amTA','#amTrat','#amProd','#amLote'].forEach(id=>$(id).addEventListener('change', ler));
+    ler();
+  } else desenharAcoes(c);
+  $('#amEmb').onclick = ev => { const b = ev.target.closest('[data-emb]'); if(!b) return; c.emb = b.dataset.emb; db.embPadrao = c.emb; save(); $('#amEmb').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed', x===b)); desenharAcoes(c); };
+  $('#amFechar').onclick = fecharSheet;
+  document.querySelectorAll('[data-outro]').forEach(b=>b.onclick = () => abrirAmostra(b.dataset.outro, Object.assign({}, ctx, { escolhido:true, corrigido:ctx.lidoProt, opcoes:null })));
+}
+function desenharAcoes(c){
+  const { a, e } = c;
+  const cls = L.classificar(a);
+  $('#amChips').innerHTML = `<span class="pill ${cls.classificacao==='Protocolo'?'acc':'warn'}">${esc(cls.classificacao)}</span>${grupoPill(cls.grupo)}<span class="pill mut">${esc(cls.cultura)}</span><span class="pill mut">${cls.tratada?'Tratada':'Sem tratamento'}</span>${cls.inova?'<span class="pill bad">INOVA GENÉTICA</span>':''}`;
+  const salas = L.SALAS.map((s,i)=>`<button class="btn sec sm" data-sala="${i}">${esc(s.replace('Sala de ','').replace(' de sementes',''))}</button>`).join('');
+  let h = '';
+  const st = e && e.status;
+  const noArquivo = st==='ARQUIVO', emSala = st==='SALA';
+  if(!cls.armazena && !noArquivo && !emSala){
+    h += `<div class="alert bad"><b>${esc(a.remessa||'Este tipo de remessa')}</b>: não armazena no arquivo refrigerado (regra da planilha de referência).</div>
+      <button class="btn" data-acao="REGISTRO">Registrar entrada sem armazenar</button>`;
+  } else if(!noArquivo && !emSala){
+    const sug = L.sugerirPosicao(a, c.emb, EST, prateleiras(), a.protocolo);
+    c.sug = sug.slot;
+    h += sug.slot ? `<div class="posbig"><small>Posição sugerida</small>${esc(L.textoSlot(sug.slot, c.emb))}<small>${esc(sug.motivo)}</small></div>
+      <div class="row"><button class="btn" data-acao="ARMAZENAR">Armazenar aqui</button><button class="btn ghost" data-acao="ESCOLHER">Outra posição</button></div>`
+      : `<div class="alert bad">${esc(sug.motivo)}</div><button class="btn sec" data-acao="NOVAPRAT">Cadastrar prateleira de ${esc(L.nomeEmb(c.emb))}</button>`;
+  }
+  if(emSala && e.slot){
+    h += `<div class="posbig"><small>Voltar para a posição reservada</small>${esc(L.textoSlot(e.slot, e.embalagem))}</div><button class="btn" data-acao="RETORNO">Retornar ao arquivo</button>`;
+  } else if(emSala){
+    const sug = L.sugerirPosicao(a, c.emb, EST, prateleiras(), a.protocolo); c.sug = sug.slot;
+    h += sug.slot ? `<div class="posbig"><small>Retornar ao arquivo em</small>${esc(L.textoSlot(sug.slot, c.emb))}</div><button class="btn" data-acao="ARMAZENAR">Retornar ao arquivo</button>` : `<div class="alert bad">${esc(sug.motivo)}</div>`;
+  }
+  h += `<h3 style="margin-top:4px">${noArquivo?'Retirar para uma sala':'Enviar para uma sala'}</h3><div class="grid2">${salas}</div>`;
+  if(noArquivo) h += `<div class="row"><button class="btn ghost sm" data-acao="ESCOLHER">Remanejar posição</button><button class="btn ghost sm" data-acao="BAIXA">Dar baixa (sai do arquivo)</button></div>`;
+  else if(emSala) h += `<button class="btn ghost sm" data-acao="BAIXA">Dar baixa (descarte / fim)</button>`;
+  $('#amAcoes').innerHTML = h;
+  $('#amAcoes').onclick = ev => {
+    const b = ev.target.closest('button'); if(!b) return;
+    if(b.dataset.sala!=null) return registrar(c, 'SALA', { destino: L.SALAS[+b.dataset.sala] });
+    const ac = b.dataset.acao;
+    if(ac==='ARMAZENAR') return registrar(c, 'ARMAZENAR', { slot:c.sug });
+    if(ac==='RETORNO') return registrar(c, 'RETORNO', { slot:e.slot });
+    if(ac==='REGISTRO') return registrar(c, 'REGISTRO', {});
+    if(ac==='BAIXA'){ if(confirm('Dar baixa na amostra '+a.protocolo+'? Ela sai do arquivo e a posição fica livre.')) registrar(c, 'BAIXA', {}); return; }
+    if(ac==='ESCOLHER') return escolherPosicao(c, noArquivo ? 'REMANEJAR' : 'ARMAZENAR');
+    if(ac==='NOVAPRAT') return novaPrateleira(c.emb, () => abrirAmostra(a.protocolo, c.ctx));
+  };
+}
+function escolherPosicao(c, acao){
+  const prats = prateleiras().filter(p=>p.embalagem===c.emb && p.situacao!=='Inativa');
+  if(!prats.length){ toast('Nenhuma prateleira de '+L.nomeEmb(c.emb)+'.'); return; }
+  const E = L.EMBALAGENS[c.emb], pp = L.perfisPrateleiras(EST, prateleiras());
+  const opt = (n, f) => Array.from({length:n}, (_,i)=>`<option value="${i+1}">${f(i+1)}</option>`).join('');
+  const base = c.sug || (c.e && c.e.slot) || { prateleira:prats[0].numero, andar:1, linha:1, lado:E.lados[0], altura:1 };
+  sheet(`<h2>Escolher posição</h2><div class="small">${esc(L.nomeEmb(c.emb))} · amostra <b class="mono">${esc(c.a.protocolo)}</b></div>
+    <label class="f">Prateleira<select id="epP">${prats.map(p=>{ const x = pp[p.numero]; return `<option value="${p.numero}">P.${L.p2(p.numero)} · ${x&&x.perfil?esc(L.textoPerfil(x.perfil)):'livre'}</option>`; }).join('')}</select></label>
+    <div class="grid2">
+      <label class="f">Andar<select id="epA">${opt(4, n=>'A.'+L.p2(n))}</select></label>
+      <label class="f">Linha<select id="epL">${opt(E.linhas, n=>'L.'+L.p2(n))}</select></label>
+      <label class="f">Lado<select id="epLado">${E.lados.map(l=>`<option value="${l}">${L.nomeLado(l)}</option>`).join('')}</select></label>
+      <label class="f">Altura<select id="epH">${opt(E.alturas, n=>L.nomeAltura(c.emb, n))}</select></label>
+    </div>
+    <div id="epMsg"></div>
+    <div class="row"><button class="btn ghost" id="epVoltar">Voltar</button><button class="btn" id="epOk">Confirmar posição</button></div>`);
+  $('#epP').value = base.prateleira; $('#epA').value = base.andar; $('#epL').value = base.linha; $('#epLado').value = base.lado; $('#epH').value = base.altura;
+  const slot = () => ({ prateleira:+$('#epP').value, andar:+$('#epA').value, linha:+$('#epL').value, lado:$('#epLado').value, altura:+$('#epH').value });
+  const checar = () => { const m = L.validarPosicao(c.a, c.emb, slot(), EST, prateleiras(), c.a.protocolo); $('#epMsg').innerHTML = m.length ? `<div class="alert bad">${m.map(esc).join('<br>')}</div>` : '<div class="alert ok">Posição livre e compatível com as regras.</div>'; $('#epOk').disabled = !!m.length; };
+  ['#epP','#epA','#epL','#epLado','#epH'].forEach(id=>$(id).onchange = checar); checar();
+  $('#epVoltar').onclick = () => telaAmostra(c);
+  $('#epOk').onclick = () => registrar(c, acao, { slot:slot() });
+}
+async function registrar(c, acao, op){
+  const { a } = c, cls = L.classificar(a), agora = new Date();
+  if(op.slot){ const m = L.validarPosicao(a, c.emb, op.slot, EST, prateleiras(), a.protocolo); if(m.length && acao!=='RETORNO'){ toast(m[0]); return; } }
+  const m = {
+    id: uid(), ts: agora.getTime(), data: br(agora), hora: hora(agora), protocolo: a.protocolo, acao, destino: op.destino || (op.slot ? 'Arquivo refrigerado' : acao==='BAIXA' ? 'Baixa' : ''),
+    prateleira: op.slot ? op.slot.prateleira : '', andar: op.slot ? op.slot.andar : '', linha: op.slot ? op.slot.linha : '', lado: op.slot ? op.slot.lado : '', altura: op.slot ? op.slot.altura : '',
+    posicao: op.slot ? L.textoSlot(op.slot, c.emb) : '', embalagem: c.emb, classificacao: cls.classificacao,
+    especie: a.especie, cultivar: a.cultivar, lote: a.lote, produtor: a.produtor, tipoAnalise: a.tipoAnalise, remessa: a.remessa, tratamento: a.tratamento, categoria: a.categoria,
+    validacao: validacaoTexto(c), lido: c.ctx.lido ? [c.ctx.lido.prot, c.ctx.lido.rem && 'Rem. '+c.ctx.lido.rem, c.ctx.lido.cultivar, c.ctx.lido.remessa].filter(Boolean).join(' · ') : '',
+    usuario: quem(), aparelho: navigator.userAgent.slice(0,60), temFoto: !!c.ctx.foto, enviado: false
+  };
+  if(c.ctx.foto){ await fotoPut(m.id, c.ctx.foto); c.ctx.foto = null; }   // a foto vai só no primeiro movimento da leitura
+  db.mov.push(m);
+  pendencias().filter(x=>x.protocolo===a.protocolo).forEach(x=>x.resolvido = true);
+  save(); recompute();
+  sincronizar();
+  movimentoOk(m);
+}
+const NOME_ACAO = { ARMAZENAR:'Armazenada no arquivo', RETORNO:'Retornou ao arquivo', REMANEJAR:'Posição alterada', SALA:'Enviada para sala', BAIXA:'Baixa registrada', REGISTRO:'Entrada registrada (não armazena)' };
+function movimentoOk(m){
+  beep(true);
+  const host = $('#sheetHost');
+  host.innerHTML = `<div class="sheet-bg" id="okBg" style="align-items:center"><div class="okbox">
+    <div class="okicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+    <h2>${esc(NOME_ACAO[m.acao]||'Movimento registrado')}</h2>
+    <div class="mono" style="font-size:20px;font-weight:700">${esc(m.protocolo)}</div>
+    ${m.posicao?`<div class="posbig" style="width:100%">${esc(m.posicao)}<small>${esc(L.nomeEmb(m.embalagem))}</small></div>`:''}
+    ${m.acao==='SALA'?`<div class="posbig" style="width:100%;font-family:var(--f-ui)">${esc(m.destino)}</div>`:''}
+    <button class="btn" id="okVoltar" style="width:100%">Bipar próxima</button></div></div>`;
+  const voltar = () => { host.innerHTML=''; if(viewAtual!=='bipar') show('bipar'); else { resumeCam(); renderUltimo(); } };
+  $('#okVoltar').onclick = voltar; $('#okBg').onclick = e=>{ if(e.target.id==='okBg') voltar(); };
+}
+function renderUltimo(){
+  const m = db.mov[db.mov.length-1], el = $('#lastCard');
+  if(!m){ el.hidden = true; return; }
+  el.hidden = false;
+  el.innerHTML = `<h3>Último movimento deste aparelho</h3><div><b class="mono">${esc(m.protocolo)}</b> · ${esc(NOME_ACAO[m.acao]||m.acao)}${m.posicao?' · <span class="mono">'+esc(m.posicao)+'</span>':''}${m.acao==='SALA'?' · '+esc(m.destino):''}</div><div class="small">${esc(m.data)} ${esc(m.hora.slice(0,5))} · ${m.enviado?'enviado ✓':'na fila'}</div>`;
+}
+
+/* ================== PRATELEIRAS ================== */
+function novaPrateleira(embIni, depois){
+  const nums = prateleiras().map(p=>p.numero), prox = nums.length ? Math.max(...nums)+1 : 1;
+  sheet(`<h2>Nova prateleira</h2><div class="small">Todas as prateleiras têm 4 andares. A capacidade depende da embalagem. A prateleira assume o perfil da primeira amostra armazenada (cultura, tratamento, produtor e grupo de remessa).</div>
+    <label class="f">Número<input type="number" id="npNum" min="1" value="${prox}"></label>
+    <div><h3 style="margin-bottom:6px">Embalagem</h3><div class="seg" id="npEmb">${Object.entries(L.EMBALAGENS).map(([k,v])=>`<button data-emb="${k}" aria-pressed="${k===(embIni||'CX1')}">${v.nome}</button>`).join('')}</div></div>
+    <div class="small" id="npCap"></div>
+    <div class="row"><button class="btn ghost" id="npCancel">Cancelar</button><button class="btn" id="npOk">Cadastrar</button></div>`);
+  let emb = embIni || 'CX1';
+  const cap = () => { const E = L.EMBALAGENS[emb]; $('#npCap').textContent = `${E.nome}: ${E.alturas} na altura × ${E.lados.length} na largura/profundidade × ${E.linhas} linhas × 4 andares = ${L.capPrateleira(emb)} amostras.`; };
+  cap();
+  $('#npEmb').onclick = ev => { const b = ev.target.closest('[data-emb]'); if(!b) return; emb = b.dataset.emb; $('#npEmb').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed', x===b)); cap(); };
+  $('#npCancel').onclick = () => depois ? depois() : fecharSheet();
+  $('#npOk').onclick = () => {
+    const n = parseInt($('#npNum').value, 10);
+    if(!(n>0)){ toast('Número inválido.'); return; }
+    if(prateleiras().some(p=>p.numero===n)){ toast('Já existe a prateleira '+L.p2(n)+'.'); return; }
+    const p = { id:uid(), numero:n, embalagem:emb, situacao:'Ativa', obs:'', ts:Date.now() };
+    db.prateleiras.push(p); db.filaPrat.push(p); save(); sincronizar();
+    toast('Prateleira '+L.p2(n)+' cadastrada'); if(depois) depois(); else { fecharSheet(); render(); }
+  };
+}
+$('#btnNovaPrat').onclick = () => novaPrateleira();
+function renderArquivo(){
+  const est = Object.values(EST), prats = prateleiras(), pp = L.perfisPrateleiras(EST, prats);
+  const noArq = est.filter(e=>e.status==='ARQUIVO').length, emSala = est.filter(e=>e.status==='SALA').length;
+  const cap = prats.filter(p=>p.situacao!=='Inativa').reduce((s,p)=>s+L.capPrateleira(p.embalagem),0);
+  $('#statsArq').innerHTML = `<button class="stat" data-ir="ARQUIVO"><div class="n">${noArq}</div><div class="t">No arquivo</div></button>
+    <button class="stat ${emSala?'warn':''}" data-ir="SALA"><div class="n">${emSala}</div><div class="t">Em salas</div></button>
+    <div class="stat"><div class="n">${cap?Math.round((noArq+emSala)/cap*100):0}%</div><div class="t">Ocupação · ${prats.length} prat.</div></div>`;
+  $('#statsArq').onclick = e => { const b = e.target.closest('[data-ir]'); if(b){ filtroAm = b.dataset.ir; show('amostras'); } };
+  $('#listPrat').innerHTML = prats.length ? prats.map(p=>{
+    const x = pp[p.numero] || {}, capP = L.capPrateleira(p.embalagem), us = x.usadas||0, G = x.perfil ? (L.GRUPOS[x.perfil.grupo]||L.GRUPOS.OUTROS) : null;
+    return `<button class="card prat" data-prat="${p.numero}"><div class="hd"><span class="num">P.${L.p2(p.numero)}</span><span class="pill mut">${esc(L.nomeEmb(p.embalagem))}</span>${p.situacao==='Inativa'?'<span class="pill bad">Inativa</span>':''}<span style="margin-left:auto" class="mono">${us}/${capP}</span></div>
+      <div class="small">${G?`<span class="swatch" style="background:${G.cor}"></span>`:''}${esc(x.perfil ? L.textoPerfil(x.perfil) : 'Livre: assume o perfil da 1ª amostra')}</div>
+      <div class="bar"><i style="width:${Math.min(100,us/capP*100)}%"></i></div></button>`; }).join('')
+    : '<div class="empty">Nenhuma prateleira cadastrada. Toque em <b>+ Prateleira</b> para começar.</div>';
+  $('#listPrat').onclick = e => { const b = e.target.closest('[data-prat]'); if(b) verPrateleira(+b.dataset.prat, 1); };
+}
+function verPrateleira(num, andar){
+  const p = prateleiras().find(x=>x.numero===num); if(!p) return;
+  const E = L.EMBALAGENS[p.embalagem], capL = L.capLinha(p.embalagem);
+  const am = Object.values(EST).filter(e=>e.slot && (e.status==='ARQUIVO'||e.status==='SALA') && e.slot.prateleira===num);
+  const x = L.perfisPrateleiras(EST, prateleiras())[num] || {};
+  let cells = '';
+  for(let l=1; l<=E.linhas; l++){ const n = am.filter(e=>e.slot.andar===andar && e.slot.linha===l).length; cells += `<button class="lcell ${n>=capL?'cheia':n?'parcial':''}" data-l="${l}"><b>L.${L.p2(l)}</b>${n}/${capL}</button>`; }
+  sheet(`<div class="row" style="align-items:center"><h2 style="flex:2 1 auto">Prateleira ${L.p2(num)}</h2><span class="pill mut">${esc(L.nomeEmb(p.embalagem))}</span></div>
+    <div class="small">${esc(x.perfil ? L.textoPerfil(x.perfil) : 'Livre')}</div>
+    <div class="seg" id="vpA">${[1,2,3,4].map(a=>`<button data-a="${a}" aria-pressed="${a===andar}">Andar ${L.p2(a)}</button>`).join('')}</div>
+    <div class="lgrid" id="vpL">${cells}</div>
+    <div id="vpLinha"></div>
+    <div class="row"><button class="btn ghost" id="vpFechar">Fechar</button><button class="btn ghost" id="vpSit">${p.situacao==='Inativa'?'Reativar':'Desativar'} prateleira</button></div>`);
+  $('#vpA').onclick = e => { const b = e.target.closest('[data-a]'); if(b) verPrateleira(num, +b.dataset.a); };
+  $('#vpL').onclick = e => { const b = e.target.closest('[data-l]'); if(!b) return; const l = +b.dataset.l;
+    const da = am.filter(x=>x.slot.andar===andar && x.slot.linha===l).sort((a,b)=>E.lados.indexOf(a.slot.lado)-E.lados.indexOf(b.slot.lado)||a.slot.altura-b.slot.altura);
+    $('#vpLinha').innerHTML = `<div class="card" style="background:var(--bg)"><h3>Linha ${L.p2(l)} · andar ${L.p2(andar)}</h3>${da.length ? da.map(x=>`<button class="item" data-prot="${esc(x.protocolo)}"><span class="prot">${esc(x.protocolo)}</span><span class="side">${esc(L.nomeLado(x.slot.lado))} · ${esc(L.nomeAltura(p.embalagem, x.slot.altura))}</span><span class="meta">${esc(x.cultivar||'')} · ${esc(x.remessa||x.classificacao||'')}${x.status==='SALA'?' · em '+esc(x.local):''}</span></button>`).join('') : '<div class="small">Linha vazia.</div>'}
+      ${da.length?`<button class="btn sec sm" data-etq="${num}|${andar}|${l}">Imprimir etiqueta desta linha</button>`:''}</div>`; };
+  $('#vpLinha').onclick = e => { const b = e.target.closest('[data-prot]'); if(b){ abrirAmostra(b.dataset.prot); return; } const t = e.target.closest('[data-etq]'); if(t){ const [pp,aa,ll] = t.dataset.etq.split('|').map(Number); imprimirEtiquetas([[pp,aa,ll]]); } };
+  $('#vpFechar').onclick = fecharSheet;
+  $('#vpSit').onclick = () => { if(am.length && p.situacao!=='Inativa' && !confirm('A prateleira tem '+am.length+' amostra(s). Desativar mesmo assim? Ela não recebe novas amostras.')) return;
+    const n = Object.assign({}, p, { situacao: p.situacao==='Inativa'?'Ativa':'Inativa', ts:Date.now() }); const i = db.prateleiras.findIndex(x=>x.id===p.id); if(i>=0) db.prateleiras[i] = n; else db.prateleiras.push(n); db.filaPrat.push(n); save(); sincronizar(); fecharSheet(); render(); };
+}
+
+/* ================== AMOSTRAS ================== */
+let filtroAm = 'ARQUIVO';
+$('#fAm').onclick = e => { const b = e.target.closest('[data-f]'); if(!b) return; filtroAm = b.dataset.f; renderAmostras(); };
+$('#qAm').addEventListener('input', ()=>{ clearTimeout(window._qa); window._qa = setTimeout(renderAmostras, 200); });
+function renderAmostras(){
+  $('#fAm').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed', b.dataset.f===filtroAm));
+  const q = L.up($('#qAm').value);
+  const pend = new Set(pendencias().map(m=>m.protocolo));
+  let lista = Object.values(EST);
+  if(filtroAm==='ARQUIVO') lista = lista.filter(e=>e.status==='ARQUIVO');
+  else if(filtroAm==='SALA') lista = lista.filter(e=>e.status==='SALA');
+  else if(filtroAm==='PEND') lista = lista.filter(e=>pend.has(e.protocolo) || (e.status==='SALA' && Date.now()-e.desde > 3*86400000));
+  if(q) lista = lista.filter(e=>[e.protocolo,e.cultivar,e.lote,e.remessa,e.produtor].some(v=>L.up(v).includes(q)));
+  lista.sort((a,b)=>b.ultimo-a.ultimo);
+  $('#listAm').innerHTML = lista.length ? lista.slice(0,200).map(e=>`<button class="item" data-prot="${esc(e.protocolo)}"><span class="prot">${esc(e.protocolo)}</span><span class="side">${statusPill(e)}</span>
+    <span class="meta">${esc(e.cultivar||'')} · ${esc(e.remessa||e.classificacao||'')}${e.slot?' · <span class="mono">'+esc(L.textoSlot(e.slot, e.embalagem))+'</span>':''}${e.status==='SALA'?' · há '+dur(Date.now()-e.desde):''}${pend.has(e.protocolo)?' · <b style="color:var(--bad)">posição em conflito</b>':''}</span></button>`).join('') + (lista.length>200?`<div class="small">Mostrando 200 de ${lista.length}. Use a busca.</div>`:'')
+    : `<div class="empty">${q?'Nada encontrado.':'Nenhuma amostra neste filtro.'}</div>`;
+}
+$('#listAm').onclick = e => { const b = e.target.closest('[data-prot]'); if(b) abrirAmostra(b.dataset.prot); };
+
+/* ================== ETIQUETAS DAS LINHAS ================== */
+let marcadas = new Set();
+function linhasComAmostras(num, andar){
+  const out = new Map();
+  Object.values(EST).forEach(e=>{ if(e.slot && (e.status==='ARQUIVO'||e.status==='SALA') && e.slot.prateleira===num && (!andar || e.slot.andar===andar)){ const k = e.slot.andar+'|'+e.slot.linha; out.set(k, (out.get(k)||0)+1); } });
+  return [...out.entries()].map(([k,n])=>{ const [a,l] = k.split('|').map(Number); return { a, l, n }; }).sort((x,y)=>x.a-y.a||x.l-y.l);
+}
+function renderEtiquetas(){
+  const prats = prateleiras(), sel = $('#eqPrat'), atual = +sel.value || (prats[0] && prats[0].numero);
+  sel.innerHTML = prats.map(p=>`<option value="${p.numero}" ${p.numero===atual?'selected':''}>P.${L.p2(p.numero)} · ${esc(L.nomeEmb(p.embalagem))}</option>`).join('');
+  if(!prats.length){ $('#listEtq').innerHTML = '<div class="empty">Nenhuma prateleira cadastrada.</div>'; return; }
+  const lin = linhasComAmostras(+sel.value, +$('#eqAndar').value);
+  $('#listEtq').innerHTML = lin.length ? lin.map(x=>{ const k = `${sel.value}|${x.a}|${x.l}`, et = L.etiquetaLinha(EST, +sel.value, x.a, x.l);
+    return `<label class="chk"><input type="checkbox" data-k="${k}" ${marcadas.has(k)?'checked':''}><div style="flex:1"><b class="mono">${esc(et.codigo)}</b> <span class="small">· ${x.n} amostra(s)</span><div class="small">${esc(et.titulo)} · Trás: ${esc(et.tras.join(', ')||'—')} · Frente: ${esc(et.frente.join(', ')||'—')}</div></div></label>`; }).join('')
+    : '<div class="empty">Nenhuma linha com amostras neste filtro.</div>';
+}
+$('#eqPrat').onchange = () => { marcadas.clear(); renderEtiquetas(); };
+$('#eqAndar').onchange = renderEtiquetas;
+$('#listEtq').onchange = e => { const c = e.target.closest('[data-k]'); if(!c) return; if(c.checked) marcadas.add(c.dataset.k); else marcadas.delete(c.dataset.k); };
+$('#eqTodas').onclick = () => { $('#listEtq').querySelectorAll('[data-k]').forEach(c=>{ c.checked = true; marcadas.add(c.dataset.k); }); };
+$('#eqImprimir').onclick = () => { const l = [...marcadas].map(k=>k.split('|').map(Number)); if(!l.length){ toast('Marque as linhas que quer imprimir.'); return; } imprimirEtiquetas(l); };
+function htmlEtiqueta(et){
+  return `<div class="etq"><div class="t">${esc(et.titulo)}</div><div class="c">${esc(et.codigo)}</div>
+    <div class="cols"><div><b>TRÁS</b>${et.tras.map(t=>`<span>${esc(t)}</span>`).join('')||'<span>—</span>'}</div><div><b>FRENTE</b>${et.frente.map(t=>`<span>${esc(t)}</span>`).join('')||'<span>—</span>'}</div></div></div>`;
+}
+function imprimirEtiquetas(lista){
+  recompute();
+  $('#printArea').innerHTML = `<div class="etqs">${lista.map(([p,a,l])=>htmlEtiqueta(L.etiquetaLinha(EST, p, a, l))).join('')}</div>`;
+  setTimeout(()=>window.print(), 80);
+}
+
+/* ================== MAIS ================== */
+function renderMais(){
+  if(document.activeElement!==$('#cfgUrl')) $('#cfgUrl').value = db.url||'';
+  renderSync();
+  const ri = REMOTO.refInfo || {};
+  $('#refInfo').textContent = `Na planilha: ${ri.linhas!=null?ri.linhas+' amostras':'—'}${ri.atualizada?' · atualizada em '+ri.atualizada:''}\nNeste aparelho: ${REF.size} amostras recebidas nos últimos ${REF_DIAS} dias` + (db.refEm?` · baixadas às ${new Date(db.refEm).toLocaleString('pt-BR')}`:'');
+  $('#tabRegras').innerHTML = Object.entries(L.GRUPOS).map(([k,g])=>{ const tipos = L.TIPOS_REMESSA.filter(t=>L.REMESSA_GRUPO[L.up(t)]===k);
+    return `<tr><td style="background:${g.cor};color:${g.tinta};font-weight:700;width:34%">${esc(g.curto)}</td><td>${esc(tipos.join(', ') || g.nome)}</td></tr>`; }).join('');
+}
+$('#btnRef').onclick = async () => { try{ toast('Baixando referência…'); await baixarRef(true); renderMais(); toast('Referência atualizada: '+REF.size+' amostras.'); }catch(e){ toast(e.message); } };
+
+/* ================== SINCRONIZAÇÃO COM A PLANILHA ================== */
+let syncando = null, syncErro = '', syncUltimo = 0, syncDeNovo = false;
+const DIAS_HISTORICO = 60;
+async function lerResposta(res){
+  const txt = await res.text(); let j;
+  try{ j = JSON.parse(txt); }catch(e){ throw new Error('A planilha não respondeu como esperado. Confira o endereço e se o acesso está como "Qualquer pessoa".'); }
+  if(!j.ok) throw new Error(j.erro || 'Erro na planilha'); return j;
+}
+async function postPlanilha(body){ return lerResposta(await fetch(db.url, { method:'POST', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body:JSON.stringify(body), redirect:'follow' })); }
+const filaMov = () => db.mov.filter(m=>!m.enviado);
+const filaTotal = () => filaMov().length + db.filaPrat.length;
+async function enviar(){
+  const fila = filaMov(), prats = db.filaPrat.slice();
+  if(!fila.length && !prats.length) return;
+  let i = 0, primeira = true;
+  while(i < fila.length || primeira){
+    const grupo = []; let peso = 0;
+    while(i < fila.length && grupo.length < 40 && peso < 4){
+      const m = fila[i++], pl = Object.assign({}, m); delete pl.enviado; delete pl.temFoto; delete pl.resolvido;
+      if(m.temFoto && !m.fotoUrl){ const f = await fotoGet(m.id); if(f){ pl.foto = f.split(',')[1]; peso++; } }
+      grupo.push(pl);
+    }
+    const j = await postPlanilha({ usuario:quem(), movimentos:grupo, prateleiras: primeira ? prats : [] });
+    const ok = new Set(j.recebidos||[]), urls = j.fotos||{};
+    db.mov.forEach(m=>{ if(ok.has(m.id)){ m.enviado = true; if(m.temFoto) fotoDel(m.id); } if(urls[m.id]) m.fotoUrl = urls[m.id]; });
+    (j.conflitos||[]).forEach(cf=>{ const m = db.mov.find(x=>x.id===cf.id); if(m){ m.situacao = 'Conflito: posição ocupada por ' + cf.ocupante; toast(`Amostra ${cf.protocolo}: a posição já estava ocupada por ${cf.ocupante} (registro feito em outro aparelho). Armazene de novo.`); } });
+    if(primeira){ const pk = new Set(j.prateleiras||[]); db.filaPrat = db.filaPrat.filter(p=>!pk.has(p.id+'|'+(p.situacao||'Ativa')+'|'+p.numero)); }
+    primeira = false; save();
+  }
+}
+function aplicarReset(reset, pratTambem){
+  db.mov.filter(m=>m.ts < reset && m.temFoto).forEach(m=>fotoDel(m.id));
+  const antes = db.mov.length;
+  db.mov = db.mov.filter(m=>m.ts >= reset);
+  if(pratTambem){ db.prateleiras = []; db.filaPrat = db.filaPrat.filter(p=>(p.ts||0) >= reset); }
+  const primeiraVez = db.resetVisto === undefined; db.resetVisto = reset; save();
+  if(!primeiraVez || antes) toast('O administrador zerou os dados de teste. O app foi limpo.');
+}
+async function baixar(){
+  const desde = Date.now() - DIAS_HISTORICO*86400000;
+  const j = await lerResposta(await fetch(db.url + '?acao=dados&desde=' + desde, { redirect:'follow' }));
+  if(j.reset && j.reset > (db.resetVisto||0)) aplicarReset(j.reset, j.resetPrat);
+  // conflitos marcados pela planilha
+  const sit = {}; (j.movimentos||[]).forEach(m=>{ if(m.situacao) sit[m.id] = m.situacao; });
+  db.mov.forEach(m=>{ if(sit[m.id] && /^Conflito/.test(sit[m.id])) m.situacao = sit[m.id]; });
+  // movimentos já enviados há mais de 2 dias saem da memória do aparelho (ficam na planilha)
+  const corte = Date.now() - 2*86400000; db.mov = db.mov.filter(m=>!m.enviado || m.ts > corte || /^Conflito/.test(m.situacao||''));
+  REMOTO = { movimentos:(j.movimentos||[]).filter(m=>m.id && m.protocolo).map(m=>Object.assign(m, { ts:Number(m.ts)||0 })), prateleiras:j.prateleiras||[], refInfo:j.refInfo||{}, em:Date.now() };
+  const pend = new Set(db.filaPrat.map(p=>p.id)); db.prateleiras = (db.prateleiras||[]).filter(p=>pend.has(p.id));
+  save(); cachePut('remoto', REMOTO);
+}
+function sincronizar(){
+  if(!db.url || !navigator.onLine){ renderSync(); return Promise.resolve(); }
+  if(syncando){ syncDeNovo = true; return syncando; }
+  syncando = (async ()=>{
+    renderSync();
+    do{ syncDeNovo = false;
+      try{ await enviar(); await baixar(); syncErro = ''; syncUltimo = Date.now(); }
+      catch(e){ syncErro = e.message || String(e); break; }
+    } while(syncDeNovo);
+    try{ await baixarRef(false); }catch(e){}
+    syncando = null; renderSync();
+    if(SESSAO && !document.querySelector('.sheet-bg')) render();
+  })();
+  return syncando;
+}
+function renderSync(){
+  const b = $('#syncBadge'), info = $('#syncInfo'), n = filaTotal();
+  if(!db.url){ b.hidden = false; b.className = 'syncbadge err'; b.textContent = 'Sem planilha'; if(info) info.textContent = 'Planilha não configurada: os movimentos ficam só neste aparelho.'; return; }
+  b.hidden = false;
+  if(syncando){ b.className='syncbadge'; b.textContent='Sincronizando…'; }
+  else if(syncErro){ b.className='syncbadge err'; b.textContent='Planilha: erro'; }
+  else if(n){ b.className='syncbadge pend'; b.textContent=n+' na fila'; }
+  else { b.className='syncbadge ok'; b.textContent='Sincronizado ✓'; }
+  if(info) info.textContent = `Na fila deste aparelho: ${n}\nMovimentos de todos os aparelhos: ${REMOTO.movimentos.length}` + (syncUltimo?`\nÚltima sincronização: ${hora(new Date(syncUltimo)).slice(0,5)}`:'') + (!navigator.onLine?'\nSem internet: envio quando a conexão voltar.':'') + (syncErro?`\nErro: ${syncErro}`:'');
+}
+$('#syncBadge').onclick = () => show('mais');
+$('#btnCfgSave').onclick = async () => {
+  const url = $('#cfgUrl').value.trim();
+  if(url && !/^https:\/\/script\.google(usercontent)?\.com\//.test(url)){ toast('O endereço deve começar com https://script.google.com/'); return; }
+  db.url = url; save();
+  if(!url){ renderSync(); return; }
+  $('#syncInfo').textContent = 'Testando conexão…';
+  try{ const j = await lerResposta(await fetch(url, { redirect:'follow' })); if(!/LASDM/.test(j.msg||'')) throw new Error('Este endereço é de outra planilha (não é a do LASDM).'); syncErro=''; toast('Planilha conectada'); sincronizar(); }
+  catch(e){ syncErro = e.message; renderSync(); toast('Não conectou. Veja o erro abaixo.'); }
+};
+window.addEventListener('online', sincronizar);
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden && SESSAO) sincronizar(); });
+setInterval(()=>{ if(SESSAO) sincronizar(); }, 60000);
+
+/* ================== LOGIN E USUÁRIOS (mesmo modelo do app das antecâmaras) ================== */
+const hexDe = buf => [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
+async function hashSenha(sal, senha){ return hexDe(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(sal+':'+senha))); }
+const normUsr = u => String(u||'').trim().toLowerCase();
+let modoLogin = 'entrar';
+function msgLogin(t, tipo){ $('#lgMsg').innerHTML = t ? `<div class="alert ${tipo||'bad'}">${esc(t)}</div>` : ''; }
+async function iniciarLogin(){
+  $('#loginScr').hidden = false; SESSAO = null; renderUsuario();
+  $('#lgUrlBox').hidden = !!db.url;
+  setTimeout(()=>{ try{ $('#lgUsuario').value = db.ultimoUsuario||''; ($('#lgUsuario').value ? $('#lgSenha') : $('#lgUsuario')).focus(); }catch(e){} }, 50);
+  if(db.url && navigator.onLine && !Object.keys(db.credenciais||{}).length){ try{ const j = await postPlanilha({ acao:'statusUsuarios' }); if(!j.temAdmin) modoPrimeiroAcesso(); }catch(e){} }
+}
+function modoPrimeiroAcesso(){
+  modoLogin = 'admin'; $('#lgTit').textContent = 'Primeiro acesso';
+  $('#lgSub').textContent = 'Ainda não existe administrador nesta planilha. Crie agora o seu usuário de administrador.';
+  $('#lgNomeBox').hidden = false; $('#lgSenha2Box').hidden = false; $('#lgBtn').textContent = 'Criar administrador';
+}
+function entrou(u){ SESSAO = u; db.ultimoUsuario = u.usuario; save(); $('#loginScr').hidden = true; $('#lgSenha').value=''; $('#lgSenha2').value=''; msgLogin(''); renderUsuario(); render(); sincronizar(); toast('Olá, '+u.nome.split(' ')[0]+'!'); }
+$('#loginForm').onsubmit = async e => {
+  e.preventDefault();
+  if(!db.url){ const u = $('#lgUrl').value.trim(); if(!/^https:\/\/script\.google(usercontent)?\.com\//.test(u)){ msgLogin('Informe o endereço da planilha (https://script.google.com/…/exec).'); return; } db.url = u; save(); $('#lgUrlBox').hidden = true;
+    try{ const j = await postPlanilha({ acao:'statusUsuarios' }); if(!j.temAdmin){ modoPrimeiroAcesso(); msgLogin('Planilha conectada. Crie o administrador.', 'ok'); return; } }catch(err){ msgLogin(err.message); db.url=''; save(); $('#lgUrlBox').hidden = false; return; } }
+  const usuario = normUsr($('#lgUsuario').value), senha = $('#lgSenha').value;
+  if(!usuario || !senha){ msgLogin('Informe usuário e senha.'); return; }
+  const btn = $('#lgBtn'); btn.disabled = true; btn.textContent = 'Aguarde…';
+  try{
+    if(modoLogin==='admin'){
+      if(senha !== $('#lgSenha2').value){ msgLogin('As senhas não conferem.'); return; }
+      if(senha.length < 4){ msgLogin('A senha precisa ter pelo menos 4 caracteres.'); return; }
+      await postPlanilha({ acao:'criarAdmin', usuario, senha, nome: $('#lgNome').value.trim() || usuario });
+      modoLogin = 'entrar'; $('#lgNomeBox').hidden = true; $('#lgSenha2Box').hidden = true; $('#lgTit').textContent = 'LASDM · Amostras';
+    }
+    let j = null;
+    if(db.url && navigator.onLine){ try{ j = await postPlanilha({ acao:'login', usuario, senha, aparelho: navigator.userAgent.slice(0,80) }); }catch(err){ if(/inválid|negado/i.test(err.message)){ msgLogin(err.message); return; } } }
+    if(j){ db.credenciais[usuario] = { usuario, nome:j.usuario.nome, perfil:j.usuario.perfil, sal:j.sal, hash:j.hash, em:Date.now() }; entrou({ usuario, nome:j.usuario.nome, perfil:j.usuario.perfil }); return; }
+    const c = (db.credenciais||{})[usuario];
+    if(c && await hashSenha(c.sal, senha) === c.hash){ entrou({ usuario, nome:c.nome, perfil:c.perfil, offline:true }); toast('Entrou sem internet (último acesso neste aparelho).'); return; }
+    msgLogin(c ? 'Usuário ou senha inválidos.' : 'Sem internet. Este usuário ainda não entrou neste aparelho: conecte-se para o primeiro acesso.');
+  }catch(err){ msgLogin(err.message || String(err)); }
+  finally{ btn.disabled = false; btn.textContent = modoLogin==='admin' ? 'Criar administrador' : 'Entrar'; }
+};
+function renderUsuario(){ const c = $('#userChip'); if(!SESSAO){ c.hidden = true; return; } c.hidden = false; c.textContent = SESSAO.nome.split(' ')[0] + ' ▾'; }
+function sair(){ stopCam(); $('#sheetHost').innerHTML=''; iniciarLogin(); }
+$('#userChip').onclick = () => { sheet(`<h2>${esc(SESSAO.nome)}</h2><div class="small">Usuário: <b>${esc(SESSAO.usuario)}</b> · ${esc(SESSAO.perfil)}${SESSAO.offline?' · entrou sem internet':''}</div><div class="row"><button class="btn ghost" id="uFechar">Fechar</button><button class="btn danger" id="uSair">Sair</button></div>`); $('#uFechar').onclick = fecharSheet; $('#uSair').onclick = sair; };
+let escondidoEm = 0;
+document.addEventListener('visibilitychange', ()=>{ if(document.hidden) escondidoEm = Date.now(); else if(SESSAO && escondidoEm && Date.now()-escondidoEm > 10*60000){ toast('Sessão encerrada por inatividade. Entre novamente.'); sair(); } });
+let ADM = null;
+async function chamarUsuarios(extra){ return postPlanilha(Object.assign({ acao:'usuarios', admin:ADM }, extra||{})); }
+function telaUsuarios(lista){
+  sheet(`<h2>Usuários</h2>
+    <div class="card" style="background:var(--bg)"><h3>Cadastrar usuário</h3>
+      <label class="f">Nome<input type="text" id="nuNome"></label>
+      <div class="row"><label class="f">Usuário<input type="text" id="nuUsuario" autocapitalize="none" spellcheck="false"></label><label class="f">Senha<input type="text" id="nuSenha" autocomplete="off" placeholder="mín. 4 caracteres"></label></div>
+      <label class="f">Perfil<select id="nuPerfil"><option>Operador</option><option>Administrador</option></select></label>
+      <button class="btn" id="nuSalvar">Cadastrar</button></div>
+    <div>${lista.map(u=>`<div class="urow"><div><b>${esc(u.nome)}</b> <span class="pill ${u.situacao==='Ativo'?'ok':'mut'}">${esc(u.situacao)}</span>${u.perfil==='Administrador'?' <span class="pill acc">Admin</span>':''}<div class="small">${esc(u.usuario)} · cadastrado por ${esc(u.criadoPor)} em ${esc(u.criadoEm)}</div></div><div></div>
+      <div class="actions"><button class="btn ghost sm" data-senha="${esc(u.usuario)}">Trocar senha</button><button class="btn ghost sm" data-sit="${esc(u.usuario)}">${u.situacao==='Ativo'?'Desativar':'Reativar'}</button></div></div>`).join('')}</div>
+    <div id="aMsg"></div>
+    <div class="card" style="background:var(--bad-bg);border-color:var(--bad)"><h3 style="color:var(--bad)">Zerar dados de teste</h3>
+      <div class="small" style="color:var(--ink)">Apaga da planilha e de todos os celulares os <b>movimentos</b>. Usuários e planilhas de referência continuam.</div>
+      <label class="small" style="display:flex;gap:8px;align-items:center;color:var(--ink)"><input type="checkbox" id="zPrat" style="width:20px;height:20px"> Apagar também as prateleiras</label>
+      <label class="f">Para confirmar, digite ZERAR<input type="text" id="zConf" autocomplete="off" autocapitalize="characters"></label>
+      <button class="btn danger" id="zBtn">Zerar dados</button></div>
+    <button class="btn ghost" id="aFechar">Fechar</button>`, 'aBg');
+  $('#aFechar').onclick = () => { ADM = null; fecharSheet(); };
+  $('#zBtn').onclick = async () => {
+    if($('#zConf').value.trim().toUpperCase() !== 'ZERAR'){ toast('Digite ZERAR para confirmar.'); return; }
+    try{ const j = await chamarUsuarios({ op:'zerar', prateleiras: $('#zPrat').checked }); const tot = Object.values(j.apagadas||{}).reduce((a,b)=>a+b,0); ADM = null; fecharSheet(); toast(`Dados zerados: ${tot} linha(s) apagada(s).`); await sincronizar(); render(); }
+    catch(err){ $('#aMsg').innerHTML = `<div class="alert bad">${esc(err.message)}</div>`; }
+  };
+  const exec = async (extra, ok) => { try{ const j = await chamarUsuarios(extra); telaUsuarios(j.usuarios); toast(ok); }catch(err){ $('#aMsg').innerHTML = `<div class="alert bad">${esc(err.message)}</div>`; } };
+  $('#nuSalvar').onclick = () => exec({ op:'salvar', usuario:normUsr($('#nuUsuario').value), nome:$('#nuNome').value.trim(), senha:$('#nuSenha').value, perfil:$('#nuPerfil').value }, 'Usuário cadastrado');
+  document.querySelectorAll('[data-sit]').forEach(b=>b.onclick = () => exec({ op:'situacao', usuario:b.dataset.sit }, 'Situação alterada'));
+  document.querySelectorAll('[data-senha]').forEach(b=>b.onclick = () => { const s = prompt('Nova senha de '+b.dataset.senha+' (mín. 4 caracteres):'); if(s) exec({ op:'senha', usuario:b.dataset.senha, senha:s }, 'Senha alterada'); });
+}
+$('#btnUsuarios').onclick = () => {
+  if(!db.url || !navigator.onLine){ toast('É preciso internet para gerenciar usuários.'); return; }
+  sheet(`<form id="aForm" style="display:contents"><h2>Acesso do administrador</h2><div class="small">Confirme seu usuário e senha de administrador.</div>
+    <label class="f">Usuário<input type="text" id="aUsr" autocapitalize="none" spellcheck="false" autocomplete="username"></label>
+    <label class="f">Senha<input type="password" id="aSenha" autocomplete="current-password"></label><div id="aMsg"></div>
+    <div class="row"><button type="button" class="btn ghost" id="aCancel">Cancelar</button><button class="btn" type="submit">Entrar</button></div></form>`, 'aBg');
+  setTimeout(()=>$('#aUsr').focus(), 50);
+  $('#aCancel').onclick = fecharSheet;
+  $('#aForm').onsubmit = async e => { e.preventDefault(); ADM = { usuario:normUsr($('#aUsr').value), senha:$('#aSenha').value };
+    try{ const j = await chamarUsuarios({ op:'listar' }); telaUsuarios(j.usuarios); }catch(err){ ADM = null; $('#aMsg').innerHTML = `<div class="alert bad">${esc(err.message)}</div>`; } };
+};
+
+/* ================== INÍCIO ================== */
+load();
+cacheGet('remoto').then(r=>{ if(r && r.movimentos){ REMOTO = r; if(SESSAO) render(); } });
+carregarRefLocal().then(()=>{ if(SESSAO && viewAtual==='mais') renderMais(); });
+show('bipar');
+renderSync();
+setTimeout(()=>{ if(navigator.onLine && !(navigator.connection && navigator.connection.saveData)) prepararOcr().catch(()=>{}); }, 4000);
+iniciarLogin();
+</script>
+</body>
+</html>

@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#173f35">
+<title>Painel LASDM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<script src="regras.js"></script>
+<style>
+/* Painel de acompanhamento: faixa de indicadores, ocupação das prateleiras, salas, conciliação com as planilhas e movimentos */
+:root{
+  --bg:#eef3f0; --surface:#ffffff; --ink:#173f35; --ink-2:#3f5a53; --muted:#6a817b; --line:#d6e1dc; --hair:#e8efeb;
+  --accent:#1f7a5c; --frost:#dcece5; --ok:#1d7a4f; --warn:#a85f00; --bad:#b3261e; --warn-bg:#fff2dc; --bad-bg:#fde7e5; --ok-bg:#e1f3e9;
+  --f-ui:"IBM Plex Sans Condensed","Roboto Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-code:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:15px;line-height:1.4}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+header{background:var(--ink);color:#f2f7f4;padding:14px max(16px,env(safe-area-inset-left,0px));position:sticky;top:0;z-index:10}
+.hin{max-width:1240px;margin:0 auto;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.hin h1{margin:0;font-size:20px;letter-spacing:.01em;margin-right:auto}
+.hin h1 small{display:block;font-size:12px;font-weight:500;opacity:.75;letter-spacing:.06em;text-transform:uppercase}
+.live{display:flex;align-items:center;gap:8px;font-size:13px;opacity:.9}
+.dot{width:9px;height:9px;border-radius:50%;background:#5cd394}.dot.off{background:#ff7b72}.dot.busy{background:#f0b040}
+.hbtn{border:1px solid rgba(255,255,255,.45);background:transparent;color:inherit;border-radius:8px;padding:7px 12px;font-weight:600;cursor:pointer;font-size:13px;text-decoration:none}
+nav.tabs{max-width:1240px;margin:12px auto 0;display:flex;gap:4px;overflow-x:auto}
+nav.tabs a{color:#cfe3da;text-decoration:none;font-weight:700;font-size:14px;padding:8px 14px;border-radius:8px 8px 0 0;white-space:nowrap}
+nav.tabs a.on{background:var(--bg);color:var(--ink)}
+main{max-width:1240px;margin:0 auto;padding:18px max(16px,env(safe-area-inset-left,0px)) 40px;display:flex;flex-direction:column;gap:18px}
+h2{margin:0;font-size:18px}
+.sub{font-size:13px;color:var(--muted);margin-top:2px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}
+@media (max-width:1000px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:560px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;cursor:pointer;text-align:left}
+.kpi .n{font-family:var(--f-code);font-size:28px;font-weight:700;line-height:1.05;font-variant-numeric:tabular-nums}
+.kpi .t{font-size:13px;color:var(--muted);margin-top:4px}
+.kpi.warn{border-color:var(--warn);background:var(--warn-bg)} .kpi.bad{border-color:var(--bad);background:var(--bad-bg)}
+.g2{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:18px}
+@media (max-width:900px){.g2{grid-template-columns:minmax(0,1fr)}}
+.bars{display:flex;flex-direction:column;gap:10px}
+.brow{display:grid;grid-template-columns:minmax(0,190px) minmax(0,1fr) auto;gap:10px;align-items:center;font-size:14px;cursor:pointer;background:none;border:0;padding:0;text-align:left}
+.brow .lbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.brow .v{font-family:var(--f-code);font-size:13px;white-space:nowrap}
+.track{height:12px;background:var(--hair);border-radius:6px;overflow:hidden;display:flex}
+.track i{display:block;height:100%}
+.swatch{display:inline-block;width:11px;height:11px;border-radius:3px;border:1px solid rgba(0,0,0,.2);margin-right:6px;vertical-align:-1px}
+.prats{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.prat{border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px;background:var(--surface)}
+.prat .hd{display:flex;align-items:center;gap:8px}
+.prat .num{font-family:var(--f-code);font-size:20px;font-weight:700}
+.prat .andares{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.prat .andares div{height:30px;border-radius:4px;background:var(--hair);position:relative;overflow:hidden}
+.prat .andares div i{position:absolute;left:0;bottom:0;right:0;background:var(--accent);opacity:.85}
+.prat .andares div span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--ink)}
+.pill{display:inline-block;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;border:1px solid rgba(0,0,0,.1);white-space:nowrap}
+.pill.ok{background:var(--ok-bg);color:var(--ok)} .pill.warn{background:var(--warn-bg);color:var(--warn)} .pill.bad{background:var(--bad-bg);color:var(--bad)} .pill.mut{background:var(--hair);color:var(--muted)}
+.fbar{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+.fbar label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.fbar input,.fbar select{height:40px;border:1.5px solid var(--line);border-radius:8px;padding:0 10px;background:var(--surface);min-width:140px;text-transform:none;letter-spacing:0;font-weight:500;color:var(--ink)}
+.btn{height:40px;border:0;border-radius:8px;padding:0 16px;font-weight:700;background:var(--accent);color:#fff;cursor:pointer}
+.btn.sec{background:var(--frost);color:var(--ink)} .btn:disabled{opacity:.5}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:760px}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--hair);white-space:nowrap}
+th{font-size:12px;color:var(--ink-2);background:#f6f9f7;cursor:pointer;user-select:none}
+td.mono{font-family:var(--f-code);font-weight:700}
+tbody tr:hover{background:#f7fbf9}
+.pager{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13px;color:var(--muted);flex-wrap:wrap}
+.pager button{height:34px;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:0 12px;cursor:pointer;font-weight:700}
+.pager button:disabled{opacity:.4}
+.alert{border-radius:8px;padding:10px 12px;font-size:14px}
+.alert.bad{background:var(--bad-bg);color:var(--bad);border:1px solid var(--bad)} .alert.ok{background:var(--ok-bg);color:var(--ok);border:1px solid var(--ok)} .alert.warn{background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn)}
+.prog{height:10px;background:var(--hair);border-radius:5px;overflow:hidden}.prog i{display:block;height:100%;background:var(--accent);width:0}
+.chart svg{display:block;width:100%;height:auto}
+.chart text{font-family:var(--f-ui);font-size:11px;fill:var(--muted)}
+.tip{position:fixed;z-index:60;pointer-events:none;background:var(--surface);border:1px solid var(--line);box-shadow:0 6px 18px rgba(0,0,0,.12);border-radius:8px;padding:8px 10px;font-size:13px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink-2)}
+.loginscr{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:16px;background:var(--bg)}
+.loginbox{width:100%;max-width:400px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:24px 20px;display:flex;flex-direction:column;gap:12px}
+.loginbox label{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:700;color:var(--muted)}
+.loginbox input{height:46px;border:1.5px solid var(--line);border-radius:8px;padding:0 12px;font-size:16px}
+.loginbox .btn{height:48px;font-size:16px}
+.empty{color:var(--muted);text-align:center;padding:20px;border:1.5px dashed var(--line);border-radius:10px}
+.pagina[hidden]{display:none}
+</style>
+</head>
+<body>
+<header>
+  <div class="hin">
+    <h1>Painel LASDM<small>Rastreabilidade das amostras · arquivo refrigerado</small></h1>
+    <div class="live"><span class="dot busy" id="dot"></span><span id="liveTxt">Conectando…</span></div>
+    <button class="hbtn" id="btnAtualizar">Atualizar</button>
+    <a class="hbtn" href="./" title="Abrir o app de bipagem">App</a>
+    <button class="hbtn" id="btnSair">Sair</button>
+  </div>
+  <nav class="tabs" aria-label="Seções"><a href="#visao" class="on">Visão geral</a><a href="#arquivo">Arquivo e salas</a><a href="#conciliacao">Conciliação</a><a href="#movimentos">Movimentos</a><a href="#planilhas">Planilhas de referência</a></nav>
+</header>
+
+<main id="main" hidden>
+  <div class="alert bad" id="erro" hidden></div>
+
+  <!-- VISÃO GERAL -->
+  <section class="pagina" id="visao">
+    <div class="kpis" id="kpis"></div>
+    <div class="g2" style="margin-top:18px">
+      <div class="card"><div><h2>Movimentos por dia</h2><div class="sub">Últimos 14 dias · entradas no arquivo, saídas para salas e retornos</div></div>
+        <div class="legend" id="legDia"></div><div class="chart" id="chartDia"></div></div>
+      <div class="card"><div><h2>Onde estão as amostras agora</h2><div class="sub">Arquivo refrigerado e salas</div></div><div class="bars" id="barsLocal"></div></div>
+    </div>
+    <div class="g2" style="margin-top:18px">
+      <div class="card"><div><h2>No arquivo por grupo de remessa</h2><div class="sub">Cores da regra de armazenamento</div></div><div class="bars" id="barsGrupo"></div></div>
+      <div class="card"><div><h2>Conciliação com as planilhas</h2><div class="sub" id="concSub"></div></div><div id="concResumo"></div></div>
+    </div>
+  </section>
+
+  <!-- ARQUIVO E SALAS -->
+  <section class="pagina" id="arquivo" hidden>
+    <div class="card"><div><h2>Ocupação das prateleiras</h2><div class="sub">Cada prateleira tem 4 andares; o gráfico mostra a ocupação de cada andar. O perfil vem da primeira amostra armazenada.</div></div><div class="prats" id="prats"></div></div>
+    <div class="card" style="margin-top:18px"><div><h2>Amostras fora do arquivo (em salas)</h2><div class="sub">A posição no arquivo fica reservada até o retorno</div></div><div id="tbSalas"></div></div>
+  </section>
+
+  <!-- CONCILIAÇÃO -->
+  <section class="pagina" id="conciliacao" hidden>
+    <div class="card">
+      <div><h2>Recebidas × registradas no arquivo</h2><div class="sub">Compara as amostras recebidas (planilhas do sistema e manual) com as bipadas no app. Soja e milho que armazenam no arquivo.</div></div>
+      <div class="fbar"><label>Recebidas de<input type="date" id="cDe"></label><label>até<input type="date" id="cAte"></label>
+        <label>Situação<select id="cSit"><option value="falta">Recebidas e não registradas</option><option value="ok">Registradas</option><option value="semref">Registradas sem referência</option><option value="todas">Todas recebidas</option></select></label></div>
+      <div id="concDet"></div>
+      <div id="tbConc"></div>
+    </div>
+  </section>
+
+  <!-- MOVIMENTOS -->
+  <section class="pagina" id="movimentos" hidden>
+    <div class="card">
+      <div><h2>Movimentos</h2><div class="sub">Bipagens de todos os aparelhos (últimos 60 dias e a última posição de cada amostra)</div></div>
+      <div class="fbar"><label>Buscar<input type="search" id="mQ" placeholder="Protocolo, cultivar, usuário…"></label>
+        <label>Ação<select id="mAcao"><option value="">Todas</option><option value="ARMAZENAR">Armazenar</option><option value="SALA">Sala</option><option value="RETORNO">Retorno</option><option value="REMANEJAR">Remanejar</option><option value="BAIXA">Baixa</option><option value="REGISTRO">Registro (não armazena)</option></select></label>
+        <label>De<input type="date" id="mDe"></label><label>Até<input type="date" id="mAte"></label>
+        <button class="btn sec" id="mExport">Exportar CSV</button></div>
+      <div id="tbMov"></div>
+    </div>
+  </section>
+
+  <!-- PLANILHAS -->
+  <section class="pagina" id="planilhas" hidden>
+    <div class="card">
+      <div><h2>Planilhas de referência</h2><div class="sub">Envie a planilha extraída do sistema e/ou a planilha manual (.xls ou .xlsx). Elas são unidas por número da amostra (a manual prevalece) e ficam disponíveis para os celulares conferirem as etiquetas. Só administradores.</div></div>
+      <div class="alert ok" id="refStatus">—</div>
+      <div class="fbar">
+        <label>Planilha do sistema<input type="file" id="fSis" accept=".xls,.xlsx,.csv"></label>
+        <label>Planilha manual<input type="file" id="fMan" accept=".xls,.xlsx,.csv"></label>
+      </div>
+      <div class="fbar"><label>Usuário administrador<input type="text" id="admU" autocomplete="username" autocapitalize="none"></label><label>Senha<input type="password" id="admS" autocomplete="current-password"></label>
+        <button class="btn" id="btnEnviarRef">Ler e enviar</button></div>
+      <div class="prog" id="prog" hidden><i></i></div>
+      <div id="refMsg"></div>
+      <div id="refPrev"></div>
+    </div>
+  </section>
+  <div class="sub" id="rodape"></div>
+</main>
+
+<div class="loginscr" id="loginScr">
+  <form class="loginbox" id="loginForm">
+    <h2>Painel LASDM</h2>
+    <div class="sub">Entre com o mesmo usuário e senha do app de bipagem.</div>
+    <label id="lgUrlBox" hidden>Endereço da planilha<input type="text" id="lgUrl" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off"></label>
+    <label>Usuário<input type="text" id="lgUsuario" autocomplete="username" autocapitalize="none" spellcheck="false"></label>
+    <label>Senha<input type="password" id="lgSenha" autocomplete="current-password"></label>
+    <div id="lgMsg"></div>
+    <button class="btn" type="submit" id="lgBtn">Entrar</button>
+  </form>
+</div>
+<div class="tip" id="tip" hidden></div>
+
+<script>
+'use strict';
+const L = window.LASDM;
+const URL_PLANILHA = '';
+const ATUALIZA_MS = 60000;
+const $ = s => document.querySelector(s);
+const esc = s => String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad = n => String(n).padStart(2,'0');
+const dkey = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const brk = k => { const [y,m,d] = k.split('-'); return `${d}/${m}/${y}`; };
+const curto = k => { const [y,m,d] = k.split('-'); return `${d}/${m}`; };
+function dur(ms){ if(!ms||ms<0) return '0 min'; const m=Math.floor(ms/60000), d=Math.floor(m/1440), h=Math.floor((m%1440)/60); return d ? d+'d '+h+'h' : h ? h+'h '+pad(m%60)+'min' : (m%60)+' min'; }
+let URL = '';
+try{ URL = localStorage.getItem('lasdm.painel.url') || URL_PLANILHA; }catch(e){ URL = URL_PLANILHA; }
+if(!URL){ try{ const d = JSON.parse(localStorage.getItem('lasdm.v1')||'{}'); URL = d.url || ''; }catch(e){} }
+
+/* ---------- login (mesmos usuários do app) ---------- */
+let SESSAO = null; try{ SESSAO = JSON.parse(sessionStorage.getItem('lasdmPainel')||'null'); }catch(e){}
+async function lerResposta(r){ const t = await r.text(); let j; try{ j = JSON.parse(t); }catch(e){ throw new Error('A planilha não respondeu como esperado. Confira o endereço.'); } if(!j.ok) throw new Error(j.erro||'Erro na planilha'); return j; }
+const post = body => fetch(URL, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(body), redirect:'follow' }).then(lerResposta);
+const get = q => fetch(URL + q, { redirect:'follow' }).then(lerResposta);
+$('#lgUrlBox').hidden = !!URL;
+$('#loginForm').onsubmit = async e => {
+  e.preventDefault();
+  if(!URL){ const u = $('#lgUrl').value.trim(); if(!/^https:\/\/script\.google(usercontent)?\.com\//.test(u)){ $('#lgMsg').innerHTML = '<div class="alert bad">Informe o endereço da planilha do LASDM.</div>'; return; } URL = u; try{ localStorage.setItem('lasdm.painel.url', u); }catch(e){} }
+  const usuario = $('#lgUsuario').value.trim().toLowerCase(), senha = $('#lgSenha').value;
+  $('#lgBtn').disabled = true; $('#lgBtn').textContent = 'Entrando…';
+  try{ const j = await post({ acao:'login', usuario, senha, aparelho:'Painel' }); SESSAO = { usuario, nome:j.usuario.nome, perfil:j.usuario.perfil }; try{ sessionStorage.setItem('lasdmPainel', JSON.stringify(SESSAO)); }catch(e){} iniciar(); }
+  catch(err){ $('#lgMsg').innerHTML = `<div class="alert bad">${esc(/fetch|Failed/i.test(err.message)?'Sem conexão com a planilha.':err.message)}</div>`; }
+  finally{ $('#lgBtn').disabled = false; $('#lgBtn').textContent = 'Entrar'; }
+};
+$('#btnSair').onclick = () => { try{ sessionStorage.removeItem('lasdmPainel'); }catch(e){} location.reload(); };
+
+/* ---------- dados ---------- */
+let DADOS = null, EST = {}, MOVS = [], REF = [], REFMAP = new Map(), ultimo = 0, carregando = false;
+const REF_DIAS = 120;
+async function carregar(){
+  if(carregando || !URL) return; carregando = true;
+  $('#dot').className = 'dot busy'; $('#liveTxt').textContent = 'Atualizando…';
+  try{
+    const desde = Date.now() - 60*86400000;
+    const d = new Date(); d.setDate(d.getDate()-REF_DIAS);
+    const [j, r] = await Promise.all([ get('?acao=dados&desde=' + desde), get('?acao=ref&desde=' + dkey(d)) ]);
+    DADOS = j; REF = r.ref || []; REFMAP = new Map(REF.map(x=>[x.prot, x]));
+    MOVS = (j.movimentos||[]).map(m=>Object.assign(m, { ts:Number(m.ts)||0 }));
+    EST = L.estadoAtual(MOVS);
+    ultimo = Date.now(); $('#erro').hidden = true;
+    render();
+  }catch(err){ $('#erro').hidden = false; $('#erro').textContent = 'Não foi possível atualizar agora (' + (err.message||err) + '). Nova tentativa em 1 minuto.'; }
+  carregando = false;
+  const ok = DADOS && $('#erro').hidden;
+  $('#dot').className = 'dot' + (ok ? '' : ' off');
+  $('#liveTxt').textContent = ultimo ? `Ao vivo · ${new Date(ultimo).toLocaleTimeString('pt-BR').slice(0,5)}` : 'Sem dados';
+}
+
+/* ---------- desenho ---------- */
+const prateleiras = () => (DADOS && DADOS.prateleiras || []).filter(p=>p.situacao!=='Removida').sort((a,b)=>a.numero-b.numero);
+function render(){
+  if(!DADOS) return;
+  const est = Object.values(EST), agora = Date.now(), hoje = dkey(new Date());
+  const noArq = est.filter(e=>e.status==='ARQUIVO'), emSala = est.filter(e=>e.status==='SALA');
+  const prats = prateleiras(), cap = prats.filter(p=>p.situacao!=='Inativa').reduce((s,p)=>s+L.capPrateleira(p.embalagem),0);
+  const movHoje = MOVS.filter(m=>dkey(new Date(m.ts))===hoje && !/^Conflito/.test(m.situacao||''));
+  const conflitos = MOVS.filter(m=>/^Conflito/.test(m.situacao||'') && !(EST[m.protocolo] && EST[m.protocolo].ultimo > m.ts));
+  const salaAntiga = emSala.filter(e=>agora-e.desde > 3*86400000);
+  $('#kpis').innerHTML = [
+    ['No arquivo', noArq.length, '', 'arquivo'],
+    ['Em salas', emSala.length, salaAntiga.length?'warn':'', 'arquivo'],
+    ['Ocupação', cap ? Math.round((noArq.length+emSala.length)/cap*100)+'%' : '—', '', 'arquivo'],
+    ['Movimentos hoje', movHoje.length, '', 'movimentos'],
+    ['Em sala há +3 dias', salaAntiga.length, salaAntiga.length?'warn':'', 'arquivo'],
+    ['Conflitos de posição', conflitos.length, conflitos.length?'bad':'', 'movimentos']
+  ].map(([t,n,c,ir])=>`<button class="kpi ${c}" data-ir="${ir}"><div class="n">${n}</div><div class="t">${t}</div></button>`).join('');
+
+  // movimentos por dia (barras empilhadas: entradas, saídas para sala, retornos)
+  const dias = []; for(let i=13;i>=0;i--){ const d = new Date(); d.setDate(d.getDate()-i); dias.push(dkey(d)); }
+  const S = [['ARMAZENAR','Entradas no arquivo','#1f7a5c'],['SALA','Saídas para salas','#d9892b'],['RETORNO','Retornos','#5aa3d6']];
+  const serie = dias.map(d=>{ const ms = MOVS.filter(m=>dkey(new Date(m.ts))===d && !/^Conflito/.test(m.situacao||'')); return { d, v:S.map(([a])=>ms.filter(m=>m.acao===a).length) }; });
+  $('#legDia').innerHTML = S.map(([,n,c])=>`<span><span class="swatch" style="background:${c}"></span>${n}</span>`).join('');
+  $('#chartDia').innerHTML = barrasDia(serie, S, Math.max(320, $('#chartDia').clientWidth || 600));
+
+  // onde estão
+  const locais = [['Arquivo refrigerado', noArq.length]].concat(L.SALAS.map(s=>[s, emSala.filter(e=>e.local===s).length]));
+  const maxL = Math.max(1, ...locais.map(x=>x[1]));
+  $('#barsLocal').innerHTML = locais.map(([n,v],i)=>`<button class="brow" data-ir="arquivo"><span class="lbl">${esc(n)}</span><span class="track"><i style="width:${v/maxL*100}%;background:${i?'#d9892b':'#1f7a5c'}"></i></span><span class="v">${v}</span></button>`).join('');
+
+  // por grupo de remessa
+  const porG = {}; noArq.concat(emSala).forEach(e=>{ const g = L.classificar(e).grupo; porG[g] = (porG[g]||0)+1; });
+  const gs = Object.entries(porG).sort((a,b)=>b[1]-a[1]), maxG = Math.max(1, ...gs.map(x=>x[1]));
+  $('#barsGrupo').innerHTML = gs.length ? gs.map(([g,v])=>{ const G = L.GRUPOS[g]||L.GRUPOS.OUTROS; return `<div class="brow"><span class="lbl"><span class="swatch" style="background:${G.cor}"></span>${esc(G.curto)}</span><span class="track"><i style="width:${v/maxG*100}%;background:${G.cor};border-right:1px solid rgba(0,0,0,.25)"></i></span><span class="v">${v}</span></div>`; }).join('') : '<div class="empty">Nenhuma amostra no arquivo.</div>';
+
+  renderConciliacao(true);
+  renderPrateleiras();
+  renderSalas();
+  renderMovimentos();
+  renderRefStatus();
+  $('#rodape').textContent = `Fonte: Planilha LASDM · ${MOVS.length} movimentos carregados · ${prats.length} prateleiras · referência: ${REF.length} amostras recebidas nos últimos ${REF_DIAS} dias`;
+  ligarTips();
+}
+function barrasDia(serie, S, W){
+  const H = 190, T = 14, B = 24, Lm = 28, R = 8, n = serie.length;
+  const max = Math.max(1, ...serie.map(s=>s.v.reduce((a,b)=>a+b,0)));
+  const nice = Math.max(1, Math.ceil(max/4)), top = nice*4;
+  const bw = (W-Lm-R)/n, y = v => T + (H-T-B)*(1-v/top);
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Movimentos por dia">`;
+  for(let k=0;k<=4;k++){ const v = nice*k, yy = y(v); s += `<line x1="${Lm}" x2="${W-R}" y1="${yy}" y2="${yy}" stroke="#e1e8e4"/><text x="${Lm-6}" y="${yy+4}" text-anchor="end">${v}</text>`; }
+  serie.forEach((p,i)=>{ let acc = 0; const x = Lm + i*bw + bw*0.18, w = bw*0.64;
+    p.v.forEach((v,j)=>{ if(!v) return; const y1 = y(acc+v), y0 = y(acc); s += `<rect x="${x}" y="${y1}" width="${w}" height="${Math.max(0,y0-y1-1)}" rx="2" fill="${S[j][2]}"/>`; acc += v; });
+    if(i%2===0 || i===n-1) s += `<text x="${x+w/2}" y="${H-6}" text-anchor="middle">${curto(p.d)}</text>`;
+    s += `<rect x="${Lm+i*bw}" y="0" width="${bw}" height="${H-B}" fill="transparent" data-tip="<b>${brk(p.d)}</b><br>${S.map(([,nm],j)=>nm+': '+p.v[j]).join('<br>')}"/>`; });
+  return s + '</svg>';
+}
+function renderPrateleiras(){
+  const prats = prateleiras(), pp = L.perfisPrateleiras(EST, prats);
+  $('#prats').innerHTML = prats.length ? prats.map(p=>{
+    const x = pp[p.numero] || { usadas:0, amostras:[] }, capP = L.capPrateleira(p.embalagem), capA = L.capAndar(p.embalagem), G = x.perfil ? (L.GRUPOS[x.perfil.grupo]||L.GRUPOS.OUTROS) : null;
+    const porA = [1,2,3,4].map(a=>x.amostras.filter(e=>e.slot.andar===a).length);
+    return `<div class="prat"><div class="hd"><span class="num">P.${L.p2(p.numero)}</span><span class="pill mut">${esc(L.nomeEmb(p.embalagem))}</span>${p.situacao==='Inativa'?'<span class="pill bad">Inativa</span>':''}<span style="margin-left:auto" class="v mono">${x.usadas}/${capP}</span></div>
+      <div class="sub">${G?`<span class="swatch" style="background:${G.cor}"></span>`:''}${esc(x.perfil?L.textoPerfil(x.perfil):'Livre')}</div>
+      <div class="andares">${porA.map((n,i)=>`<div data-tip="<b>Andar ${L.p2(i+1)}</b><br>${n} de ${capA}"><i style="height:${n/capA*100}%"></i><span>A.${L.p2(i+1)}</span></div>`).join('')}</div></div>`; }).join('')
+    : '<div class="empty">Nenhuma prateleira cadastrada (cadastre pelo app).</div>';
+}
+/* tabela simples com ordenação e paginação */
+const TAB = {};
+function tabela(id, cols, linhas, vazio, ordem){
+  const st = TAB[id] = TAB[id] || { pag:1, k:ordem ? ordem[0] : null, d:ordem ? ordem[1] : -1 };
+  if(st.k){ const c = cols.find(c=>c.k===st.k); linhas = linhas.slice().sort((a,b)=>{ const x = c.v ? c.v(a) : a[st.k], y = c.v ? c.v(b) : b[st.k]; return (typeof x==='number' && typeof y==='number' ? x-y : String(x).localeCompare(String(y),'pt-BR',{numeric:true})) * st.d; }); }
+  const POR = 20, tot = Math.max(1, Math.ceil(linhas.length/POR)); st.pag = Math.min(st.pag, tot);
+  const ini = (st.pag-1)*POR, pg = linhas.slice(ini, ini+POR);
+  $('#'+id).innerHTML = linhas.length ? `<div class="tw"><table><thead><tr>${cols.map(c=>`<th data-sort="${id}|${c.k}">${esc(c.t)}${st.k===c.k?(st.d>0?' ▲':' ▼'):''}</th>`).join('')}</tr></thead><tbody>${pg.map(r=>`<tr>${cols.map(c=>`<td class="${c.cls||''}">${c.h(r)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+    <div class="pager"><span>${ini+1}–${Math.min(linhas.length, ini+POR)} de ${linhas.length}</span><span><button data-pg="${id}|-1" ${st.pag===1?'disabled':''}>‹ Anterior</button> <button data-pg="${id}|1" ${st.pag===tot?'disabled':''}>Próxima ›</button></span></div>`
+    : `<div class="empty">${vazio}</div>`;
+  TAB[id].render = () => tabela(id, cols, linhas, vazio, ordem);
+}
+document.addEventListener('click', e=>{
+  const s = e.target.closest('[data-sort]'); if(s){ const [id,k] = s.dataset.sort.split('|'); const st = TAB[id]; st.d = st.k===k ? -st.d : 1; st.k = k; st.pag = 1; st.render(); return; }
+  const p = e.target.closest('[data-pg]'); if(p){ const [id,d] = p.dataset.pg.split('|'); TAB[id].pag += +d; TAB[id].render(); return; }
+  const g = e.target.closest('[data-ir]'); if(g){ irPara(g.dataset.ir); }
+});
+function renderSalas(){
+  const agora = Date.now(), em = Object.values(EST).filter(e=>e.status==='SALA');
+  tabela('tbSalas', [
+    { k:'protocolo', t:'Protocolo', cls:'mono', h:e=>esc(e.protocolo) },
+    { k:'local', t:'Sala', h:e=>esc(e.local) },
+    { k:'desde', t:'Há', v:e=>agora-e.desde, h:e=>{ const d = agora-e.desde; return `<span class="pill ${d>3*86400000?'warn':'mut'}">${dur(d)}</span>`; } },
+    { k:'cultivar', t:'Cultivar', h:e=>esc(e.cultivar||'') },
+    { k:'remessa', t:'Remessa', h:e=>esc(e.remessa||e.classificacao||'') },
+    { k:'slot', t:'Posição reservada', v:e=>e.slot?L.chaveSlot(e.slot):'', h:e=>e.slot?esc(L.textoSlot(e.slot, e.embalagem)):'—' },
+    { k:'usuario', t:'Por', h:e=>esc(e.usuario||'') } ], em, 'Nenhuma amostra em sala agora.', ['desde', 1]);
+}
+const NOME = { ARMAZENAR:'Armazenar', SALA:'Sala', RETORNO:'Retorno', REMANEJAR:'Remanejar', BAIXA:'Baixa', REGISTRO:'Registro' };
+let MOVF = [];
+function renderMovimentos(){
+  const q = L.up($('#mQ').value), ac = $('#mAcao').value, de = $('#mDe').value, ate = $('#mAte').value;
+  MOVF = MOVS.filter(m=>{ const d = dkey(new Date(m.ts)); return (!ac || m.acao===ac) && (!de || d>=de) && (!ate || d<=ate) && (!q || [m.protocolo,m.cultivar,m.usuario,m.remessa,m.lote,m.destino].some(v=>L.up(v).includes(q))); });
+  tabela('tbMov', [
+    { k:'ts', t:'Data/hora', h:m=>esc(m.data+' '+String(m.hora).slice(0,5)) },
+    { k:'protocolo', t:'Protocolo', cls:'mono', h:m=>esc(m.protocolo) },
+    { k:'acao', t:'Ação', h:m=>`<span class="pill ${m.acao==='SALA'?'warn':m.acao==='BAIXA'?'mut':'ok'}">${esc(NOME[m.acao]||m.acao)}</span>${/^Conflito/.test(m.situacao||'')?' <span class="pill bad">conflito</span>':''}` },
+    { k:'destino', t:'Destino / posição', h:m=>esc(m.posicao || m.destino || '') },
+    { k:'cultivar', t:'Cultivar', h:m=>esc(m.cultivar||'') },
+    { k:'remessa', t:'Remessa', h:m=>esc(m.remessa||m.classificacao||'') },
+    { k:'validacao', t:'Validação', h:m=>`<span title="${esc(m.validacao)}">${/diverge|não encontrado/i.test(m.validacao)?'<span class="pill warn">ver</span>':m.validacao?'<span class="pill ok">ok</span>':'—'}</span>` },
+    { k:'usuario', t:'Usuário', h:m=>esc(m.usuario||'') },
+    { k:'fotoUrl', t:'Foto', h:m=>m.fotoUrl && /^https/.test(m.fotoUrl) ? `<a href="${esc(m.fotoUrl)}" target="_blank" rel="noopener">abrir</a>` : '—' } ], MOVF, 'Nenhum movimento com esses filtros.', ['ts', -1]);
+}
+['#mQ','#mAcao','#mDe','#mAte'].forEach(id=>$(id).addEventListener('input', ()=>{ if(TAB.tbMov) TAB.tbMov.pag = 1; renderMovimentos(); }));
+$('#mExport').onclick = () => {
+  const cols = ['data','hora','protocolo','acao','destino','posicao','embalagem','classificacao','especie','cultivar','lote','produtor','tipoAnalise','remessa','tratamento','validacao','lido','usuario','situacao','fotoUrl'];
+  const csv = [cols.join(';')].concat(MOVF.map(m=>cols.map(c=>'"'+String(m[c]??'').replace(/"/g,'""')+'"').join(';'))).join('\r\n');
+  const a = document.createElement('a'); a.href = URL_.createObjectURL(new Blob(['﻿'+csv], { type:'text/csv;charset=utf-8' })); a.download = 'movimentos_lasdm.csv'; a.click();
+};
+const URL_ = window.URL;
+
+/* ---------- conciliação ---------- */
+function renderConciliacao(resumo){
+  const hoje = new Date(), de0 = new Date(); de0.setDate(de0.getDate()-30);
+  if(!$('#cDe').value) $('#cDe').value = dkey(de0); if(!$('#cAte').value) $('#cAte').value = dkey(hoje);
+  const de = $('#cDe').value, ate = $('#cAte').value;
+  const recebidas = REF.filter(r=>{ const k = L.dataRefKey(r.data); return k && k>=de && k<=ate; }).filter(r=>{ const c = L.classificar(r); return c.classificacao==='Protocolo' && c.armazena; });
+  const reg = r => !!EST[r.prot];
+  const ok = recebidas.filter(reg), falta = recebidas.filter(r=>!reg(r));
+  const semref = Object.values(EST).filter(e=>!REFMAP.has(e.protocolo) && e.classificacao==='Protocolo');
+  const pct = recebidas.length ? Math.round(ok.length/recebidas.length*100) : 0;
+  $('#concSub').textContent = `Recebidas de ${brk(de)} a ${brk(ate)} (soja e milho que armazenam)`;
+  $('#concResumo').innerHTML = `<div class="bars"><div class="brow" data-ir="conciliacao"><span class="lbl">Registradas no app</span><span class="track"><i style="width:${pct}%;background:#1f7a5c"></i></span><span class="v">${ok.length} de ${recebidas.length} (${pct}%)</span></div>
+    <div class="brow" data-ir="conciliacao"><span class="lbl">Recebidas e não registradas</span><span class="track"><i style="width:${recebidas.length?falta.length/recebidas.length*100:0}%;background:#d9892b"></i></span><span class="v">${falta.length}</span></div>
+    <div class="brow" data-ir="conciliacao"><span class="lbl">Registradas sem referência</span><span class="track"><i style="width:${Math.min(100,semref.length)}%;background:#b3261e"></i></span><span class="v">${semref.length}</span></div></div>
+    ${REF.length?'':'<div class="alert warn">Nenhuma planilha de referência enviada ainda. Use a aba "Planilhas de referência".</div>'}`;
+  if(resumo && !location.hash.includes('conciliacao')) return;
+  const sit = $('#cSit').value;
+  $('#concDet').innerHTML = `<div class="sub">${recebidas.length} recebidas no período · ${ok.length} registradas (${pct}%) · ${falta.length} sem registro · ${semref.length} registradas sem referência</div>`;
+  if(sit==='semref') return tabela('tbConc', [
+      { k:'protocolo', t:'Protocolo', cls:'mono', h:e=>esc(e.protocolo) }, { k:'cultivar', t:'Cultivar (digitada)', h:e=>esc(e.cultivar||'') }, { k:'remessa', t:'Remessa', h:e=>esc(e.remessa||'') },
+      { k:'local', t:'Onde está', h:e=>esc(e.local) }, { k:'usuario', t:'Por', h:e=>esc(e.usuario||'') } ], semref, 'Nenhuma.', ['protocolo', 1]);
+  const lista = sit==='falta' ? falta : sit==='ok' ? ok : recebidas;
+  tabela('tbConc', [
+    { k:'prot', t:'Protocolo', cls:'mono', v:r=>L.protAno(r.prot)*1e7+L.protNum(r.prot), h:r=>esc(r.prot) },
+    { k:'data', t:'Recebida', v:r=>L.dataRefKey(r.data), h:r=>esc(r.data) },
+    { k:'especie', t:'Espécie', h:r=>esc(r.especie) }, { k:'cultivar', t:'Cultivar', h:r=>esc(r.cultivar) },
+    { k:'remessa', t:'Remessa', h:r=>{ const G = L.GRUPOS[L.classificar(r).grupo]||L.GRUPOS.OUTROS; return `<span class="swatch" style="background:${G.cor}"></span>${esc(r.remessa)}`; } },
+    { k:'tratamento', t:'Tratamento', h:r=>esc(r.tratamento||'—') }, { k:'produtor', t:'Produtor', h:r=>esc(r.produtor) },
+    { k:'st', t:'No app', v:r=>EST[r.prot]?EST[r.prot].local:'', h:r=>EST[r.prot] ? `<span class="pill ok">${esc(EST[r.prot].local)}</span>` : '<span class="pill warn">não registrada</span>' },
+    { k:'origem', t:'Planilha', h:r=>esc(r.origem||'') } ], lista, 'Nada neste filtro.', ['prot', 1]);
+}
+['#cDe','#cAte','#cSit'].forEach(id=>$(id).addEventListener('change', ()=>{ if(TAB.tbConc) TAB.tbConc.pag = 1; renderConciliacao(false); }));
+
+/* ---------- planilhas de referência: ler (.xls/.xlsx) e enviar ---------- */
+function renderRefStatus(){ const ri = DADOS && DADOS.refInfo || {}; $('#refStatus').textContent = ri.linhas ? `Na planilha: ${ri.linhas} amostras de referência · última atualização: ${ri.atualizada||'—'}` : 'Nenhuma planilha de referência enviada ainda.'; }
+function carregarScript(src){ return new Promise((res,rej)=>{ const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = ()=>rej(new Error('Não carregou o leitor de Excel. Verifique a internet.')); document.head.appendChild(s); }); }
+async function lerArquivo(f, origem){
+  if(!window.XLSX) await carregarScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+  const buf = await f.arrayBuffer();
+  const wb = XLSX.read(buf, { type:'array', cellDates:true });
+  const sh = wb.Sheets[wb.SheetNames[0]];
+  // datas como dd/mm/aaaa (as colunas do sistema vêm como texto; se vierem como data do Excel, converte)
+  const linhas = XLSX.utils.sheet_to_json(sh, { header:1, raw:true, defval:'' }).map(r=>r.map(v=> v instanceof Date ? `${pad(v.getDate())}/${pad(v.getMonth()+1)}/${v.getFullYear()}` : String(v)));
+  return L.lerPlanilhaRef(linhas, origem);
+}
+const prog = p => { $('#prog').hidden = false; $('#prog i').style.width = Math.round(p*100)+'%'; };
+$('#btnEnviarRef').onclick = async () => {
+  const fs = $('#fSis').files[0], fm = $('#fMan').files[0];
+  if(!fs && !fm){ $('#refMsg').innerHTML = '<div class="alert warn">Escolha pelo menos uma planilha.</div>'; return; }
+  const admin = { usuario:$('#admU').value.trim().toLowerCase(), senha:$('#admS').value };
+  if(!admin.usuario || !admin.senha){ $('#refMsg').innerHTML = '<div class="alert warn">Informe usuário e senha de administrador.</div>'; return; }
+  const btn = $('#btnEnviarRef'); btn.disabled = true;
+  try{
+    $('#refMsg').innerHTML = '<div class="sub">Lendo as planilhas…</div>'; prog(0.02);
+    const sis = fs ? await lerArquivo(fs, 'Sistema') : [], man = fm ? await lerArquivo(fm, 'Manual') : [];
+    $('#refMsg').innerHTML = '<div class="sub">Baixando a referência atual para unir…</div>'; prog(0.08);
+    const atual = (await get('?acao=ref')).ref || [];
+    const todas = L.unirRef([atual, sis, man]);
+    const novas = todas.length - atual.length;
+    const POR = 2000; let enviadas = 0;
+    await post({ acao:'ref', op:'inicio', admin });
+    for(let i=0; i<todas.length; i+=POR){ const parte = todas.slice(i, i+POR).map(r=>{ const o = {}; L.CAMPOS_REF.forEach(k=>o[k] = r[k]||''); return o; }); await post({ acao:'ref', op:'parte', admin, linhas:parte }); enviadas += parte.length; prog(0.1 + 0.88*enviadas/todas.length); $('#refMsg').innerHTML = `<div class="sub">Enviando… ${enviadas} de ${todas.length}</div>`; }
+    const resumo = [fs?`sistema ${sis.length}`:'', fm?`manual ${man.length}`:''].filter(Boolean).join(', ');
+    const j = await post({ acao:'ref', op:'fim', admin, resumo });
+    prog(1);
+    const esp = {}; todas.forEach(r=>{ esp[r.especie] = (esp[r.especie]||0)+1; });
+    $('#refMsg').innerHTML = `<div class="alert ok">Planilhas enviadas: ${j.linhas} amostras de referência (${resumo}; ${novas>=0?novas+' novas':''}). Os celulares baixam a atualização na próxima sincronização.</div>`;
+    $('#refPrev').innerHTML = `<div class="sub">Por espécie: ${Object.entries(esp).map(([k,v])=>esc(k)+' '+v).join(' · ')}</div>`;
+    $('#admS').value = ''; carregar();
+  }catch(err){ $('#refMsg').innerHTML = `<div class="alert bad">${esc(err.message||err)}</div>`; }
+  finally{ btn.disabled = false; }
+};
+
+/* ---------- navegação e dicas ---------- */
+const PAGINAS = ['visao','arquivo','conciliacao','movimentos','planilhas'];
+function irPara(id, semHist){
+  if(!PAGINAS.includes(id)) id = 'visao';
+  PAGINAS.forEach(p=>document.getElementById(p).hidden = p!==id);
+  document.querySelectorAll('nav.tabs a').forEach(a=>a.classList.toggle('on', a.getAttribute('href')==='#'+id));
+  if(!semHist && location.hash!=='#'+id){ try{ history.pushState(null,'','#'+id); }catch(e){} }
+  if(id==='conciliacao') renderConciliacao(false);
+  window.scrollTo(0,0);
+}
+document.querySelectorAll('nav.tabs a').forEach(a=>a.addEventListener('click', e=>{ e.preventDefault(); irPara(a.getAttribute('href').slice(1)); }));
+addEventListener('popstate', ()=>irPara(location.hash.slice(1), true));
+function ligarTips(){ const tip = $('#tip'); document.querySelectorAll('[data-tip]').forEach(el=>{ el.onmousemove = e=>{ tip.innerHTML = el.dataset.tip; tip.hidden = false; let x = e.clientX+14, y = e.clientY+14; if(x+tip.offsetWidth>innerWidth-8) x = e.clientX-tip.offsetWidth-14; tip.style.left = x+'px'; tip.style.top = y+'px'; }; el.onmouseleave = ()=>tip.hidden = true; }); }
+
+/* ---------- início ---------- */
+$('#btnAtualizar').onclick = carregar;
+let rz; addEventListener('resize', ()=>{ clearTimeout(rz); rz = setTimeout(render, 200); });
+function iniciar(){
+  $('#loginScr').hidden = true; $('#main').hidden = false;
+  irPara(location.hash.slice(1), true);
+  carregar(); setInterval(()=>{ if(!document.hidden) carregar(); }, ATUALIZA_MS);
+}
+if(SESSAO && URL) iniciar(); else setTimeout(()=>($('#lgUrlBox').hidden ? $('#lgUsuario') : $('#lgUrl')).focus(), 50);
+</script>
+</body>
+</html>
