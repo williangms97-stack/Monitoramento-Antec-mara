@@ -329,7 +329,26 @@ tr.sev-warn td:first-child{box-shadow:inset 5px 0 0 var(--warn)}
 <script>
 /* Painel: lê os dados da Planilha Google (mesmo App da Web do app de bipagem) e recalcula as regras:
    reincidência de um dia para o outro, checklist do dia finaliza os não encontrados, empresa pelo lote. */
-const URL_PLANILHA = 'https://script.google.com/macros/s/AKfycbxfrmR8yXzSTXDnWNHwtIklFgmNSjOqS4gsG__Mr4OSRb1C2GkJ9mvPUR5Y2iJzxRYL/exec';
+const URL_PLANILHA = 'https://wohjgoeovnlcxevypqzy.supabase.co';
+/* ===== BANCO: Supabase (versão de TESTE) ===== */
+const SUPA_URL = 'https://wohjgoeovnlcxevypqzy.supabase.co', SUPA_KEY = 'sb_publishable_d2r_7z22qs9bBEJvHfLUVw_JSrIuDgc';
+const SUPA_H = { apikey:SUPA_KEY, Authorization:'Bearer '+SUPA_KEY };
+async function supaRpc(fn, args){
+  const r = await fetch(SUPA_URL + '/rest/v1/rpc/' + fn, { method:'POST', headers:Object.assign({ 'Content-Type':'application/json' }, SUPA_H), body:JSON.stringify(args) });
+  const t = await r.text(); let j; try{ j = JSON.parse(t); }catch(e){ throw new Error('A planilha não respondeu como esperado. Confira o endereço e se o acesso está como "Qualquer pessoa".'); }
+  if(!r.ok) throw new Error((j && (j.message || j.error)) || 'Erro na planilha');
+  return j;
+}
+const supaPost = body => supaRpc('api_post', { d: body });
+const supaGet = params => supaRpc('api_get', { p: params });
+// foto do pré-lote: vai para o armazenamento do Supabase (pasta "fotos") e a bipagem guarda o link
+async function supaFoto(id, dataUrl){
+  const blob = await (await fetch(dataUrl)).blob(), nome = id + '.jpg';
+  const r = await fetch(SUPA_URL + '/storage/v1/object/fotos/' + encodeURIComponent(nome), { method:'POST', headers:Object.assign({ 'Content-Type':'image/jpeg', 'x-upsert':'false' }, SUPA_H), body:blob });
+  if(!r.ok && r.status !== 409 && r.status !== 400) throw new Error('Falha ao enviar a foto (' + r.status + ')');
+  return SUPA_URL + '/storage/v1/object/public/fotos/' + encodeURIComponent(nome);
+}
+
 const ATUALIZA_MS = 60000, DIAS_HISTORICO = 90;
 const $ = s => document.querySelector(s);
 const esc = s => String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -353,8 +372,7 @@ const chave = (t,l) => (t==='Pré-lote'?'P:':'L:') + String(l).toUpperCase();
 let SESSAO = null;
 try{ SESSAO = JSON.parse(sessionStorage.getItem('painelSessao')||'null'); }catch(e){}
 async function post(body){
-  const r = await fetch(URL_PLANILHA, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(body), redirect:'follow' });
-  const j = JSON.parse(await r.text()); if(!j.ok) throw new Error(j.erro||'Erro na planilha'); return j;
+  const j = await supaPost(body); if(!j.ok) throw new Error(j.erro||'Erro na planilha'); return j;
 }
 $('#loginForm').onsubmit = async e => {
   e.preventDefault();
@@ -377,8 +395,7 @@ async function carregar(){
   if(carregando) return; carregando = true;
   $('#dot').className = 'dot busy'; $('#liveTxt').textContent = 'Atualizando…';
   try{
-    const r = await fetch(URL_PLANILHA + '?acao=dados&desde=' + (Date.now()-DIAS_HISTORICO*86400000), { redirect:'follow' });
-    const j = JSON.parse(await r.text()); if(!j.ok) throw new Error(j.erro||'Erro na planilha');
+    const j = await supaGet({ acao:'dados', desde: Date.now()-DIAS_HISTORICO*86400000 }); if(!j.ok) throw new Error(j.erro||'Erro na planilha');
     DADOS = j; ultimo = Date.now(); $('#erro').hidden = true;
     processar(); render();
   }catch(err){

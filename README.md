@@ -6,7 +6,8 @@ numa Planilha Google que funciona como banco de dados central para vários apare
 
 - **App:** https://williangms97-stack.github.io/Monitoramento-Antec-mara/
 - **Painel:** https://williangms97-stack.github.io/Monitoramento-Antec-mara/painel.html
-- **Banco de dados:** Planilha Google "Monitoramento Antecâmara" (Apps Script publicado como App da Web)
+- **Banco de dados:** Supabase (projeto "Monitoramento Antecâmara", São Paulo) desde 28/10/2026 — estrutura em `supabase/01_estrutura.sql`.
+  A Planilha Google "Monitoramento Antecâmara" fica como backup do período até 28/10/2026 (não recebe mais dados).
 
 ## Estrutura
 
