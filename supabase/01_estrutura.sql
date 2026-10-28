@@ -1,5 +1,5 @@
 -- =====================================================================
--- Monitor de Antecâmara · banco de dados no Supabase (versão 6)
+-- Monitor de Antecâmara · banco de dados no Supabase (versão 6.1)
 -- Cole TUDO no Supabase: SQL Editor → New query → Run.
 -- Pode rodar de novo sem problema (não apaga dados).
 --
@@ -275,9 +275,9 @@ begin
       values (c->>'id', c->>'data', c->>'hora', c->>'acao', c->>'aparelho', c->>'conferidos', jsonb_array_length(coalesce(c->'finalizados', '[]'::jsonb)),
               (select string_agg(e->>'lote', ', ') from jsonb_array_elements(coalesce(c->'finalizados', '[]'::jsonb)) e),
               nullif(c->>'ts', '')::bigint, coalesce(c->>'dataKey', ''));
-      if c->>'acao' = 'Reaberto' then   -- cancela as finalizações daquele dia feitas por este aparelho
+      if c->>'acao' = 'Reaberto' then   -- v6.1: cancela as finalizações daquele dia de QUALQUER usuário (vale o último checklist do dia)
         update finalizados set situacao = 'Cancelado (checklist reaberto)'
-         where finalizado_em = c->>'data' and aparelho = c->>'aparelho' and situacao = 'Finalizado';
+         where finalizado_em = c->>'data' and situacao = 'Finalizado';
       end if;
       for f in select * from jsonb_array_elements(coalesce(c->'finalizados', '[]'::jsonb)) loop
         insert into finalizados (finalizado_em, tipo, lote, empresa, primeira, ultima, ultimo_local, tempo_fora, horas_fora, aparelho, situacao)
@@ -320,4 +320,4 @@ do $$ begin
 exception when others then raise notice 'Política das fotos não criada (%). Crie pelo painel: Storage → fotos → Policies.', SQLERRM;
 end $$;
 
-select 'Pronto: estrutura do Monitor de Antecâmara criada (versão 6).' as resultado;
+select 'Pronto: estrutura do Monitor de Antecâmara criada (versão 6.1).' as resultado;
