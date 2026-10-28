@@ -1154,7 +1154,7 @@ async function enviar(){
     const grupo = []; let peso = 0;
     while(i < fila.length && grupo.length < 50 && peso < 4){
       const r = fila[i++], pl = payloadRegistro(r);
-      if(r.temFoto && !r.fotoUrl){ const f = await fotoGet(r.id); if(f){ try{ pl.fotoUrl = await supaFoto(r.id, f); }catch(e){} peso++; } }
+      if(r.temFoto && !r.fotoUrl){ const f = await fotoGet(r.id); if(f){ try{ pl.fotoUrl = r.fotoUrl = await supaFoto(r.id, f); }catch(e){ continue; } peso++; } }   // foto não subiu: a bipagem fica na fila e tenta de novo
       grupo.push(pl);
     }
     const j = await postPlanilha({ usuario:quem(), registros:grupo, excluir: primeira?exc:[], checklists: primeira?cks:[], locais: primeira?locs:[] });
