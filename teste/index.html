@@ -1,0 +1,1444 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f2a3d">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Monitor de Antecâmara</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+/* Layout: app de uma coluna para celular, cabeçalho fixo + navegação inferior grande (uso com luvas) */
+:root{
+  --bg:#eef3f6; --surface:#ffffff; --ink:#0f2a3d; --muted:#587080; --line:#d3dee6;
+  --accent:#0b6fa4; --accent-ink:#ffffff; --frost:#dcebf4;
+  --ok:#1d7a4f; --warn:#b86a00; --bad:#b3261e; --warn-bg:#fff2dc; --bad-bg:#fde7e5; --ok-bg:#e1f3e9;
+  --f-ui:"IBM Plex Sans Condensed","Roboto Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-code:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0b1820; --surface:#12242f; --ink:#e3eef4; --muted:#8fa7b5; --line:#22394a;
+  --accent:#4fb0e3; --accent-ink:#06202e; --frost:#173244;
+  --ok:#5cc792; --warn:#f0a840; --bad:#ff7b72; --warn-bg:#33270f; --bad-bg:#3a1a18; --ok-bg:#12301f;
+  color-scheme:dark;
+}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:16px;line-height:1.4;-webkit-tap-highlight-color:transparent}
+button,input,select{font:inherit;color:inherit}
+.app{min-height:100%;display:flex;flex-direction:column;padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}
+header.top{position:sticky;top:0;z-index:20;background:var(--ink);color:var(--bg);
+  padding:calc(10px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px));
+  display:flex;align-items:center;justify-content:space-between;gap:12px}
+@media (prefers-color-scheme:dark){header.top{background:#061017;color:var(--ink)}}
+.brand{display:flex;flex-direction:column;line-height:1.1}
+.brand b{font-size:18px;letter-spacing:.02em}
+.brand small{font-size:12px;opacity:.75;text-transform:uppercase;letter-spacing:.08em}
+.syncbadge{font-size:12px;font-weight:700;border-radius:6px;padding:4px 8px;white-space:nowrap;border:0;cursor:pointer;background:rgba(255,255,255,.14);color:inherit}
+.syncbadge.ok{background:#1d7a4f;color:#fff}.syncbadge.pend{background:#b86a00;color:#fff}.syncbadge.err{background:#b3261e;color:#fff}
+.hdr-right{display:flex;gap:8px;align-items:center}
+.datebadge{font-family:var(--f-code);font-size:13px;border:1px solid currentColor;border-radius:6px;padding:4px 8px;opacity:.9;white-space:nowrap}
+main{flex:1;padding:16px max(16px,env(safe-area-inset-right,0px)) 16px max(16px,env(safe-area-inset-left,0px));max-width:680px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+section.view{display:flex;flex-direction:column;gap:14px}
+h2{font-size:20px;margin:0;text-wrap:balance}
+h3{font-size:13px;margin:0;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px}
+label.f{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+input[type=text],input[type=password],input[type=date],input[type=search],select,textarea{width:100%;min-height:48px;border:1.5px solid var(--line);border-radius:8px;background:var(--bg);padding:10px 12px;font-size:17px;text-transform:none;letter-spacing:0;font-weight:500;color:var(--ink)}
+textarea{font-family:var(--f-code);font-size:13px;min-height:70px;resize:vertical}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:3px solid var(--accent);outline-offset:1px}
+.btn{min-height:52px;border:0;border-radius:8px;padding:12px 16px;font-weight:700;font-size:17px;background:var(--accent);color:var(--accent-ink);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn.sec{background:var(--frost);color:var(--ink)}
+.btn.ghost{background:transparent;border:1.5px solid var(--line);color:var(--ink)}
+.btn.danger{background:var(--bad);color:#fff}
+.btn.sm{min-height:40px;font-size:15px;padding:8px 12px}
+.btn:disabled{opacity:.5}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.row>*{flex:1 1 140px}
+.reader-wrap{position:relative;background:#000;border-radius:10px;overflow:hidden;aspect-ratio:1/1;max-width:100%}
+#video{width:100%;height:100%;object-fit:cover;display:block}
+.aim{position:absolute;inset:20%;border:3px solid rgba(255,255,255,.85);border-radius:12px;box-shadow:0 0 0 999px rgba(0,0,0,.35);pointer-events:none}
+.camtools{position:absolute;right:10px;top:10px;display:flex;gap:8px}
+.camtools button{min-height:44px;border:0;border-radius:22px;padding:0 14px;background:rgba(0,0,0,.6);color:#fff;font-weight:700}
+.banner{background:var(--bad-bg);color:var(--bad);border:1.5px solid var(--bad);border-radius:10px;padding:12px;font-weight:600}
+.reader-idle{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:#cfe3ee;text-align:center;padding:24px}
+.reader-idle svg{width:72px;height:72px;opacity:.8}
+.locbar{display:flex;align-items:center;gap:10px;background:var(--frost);border-radius:10px;padding:10px 12px}
+.locbar .lbl{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.locbar select{background:var(--surface);min-height:44px}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px}
+.stat .n{font-family:var(--f-code);font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+.stat .t{font-size:13px;color:var(--muted);margin-top:4px}
+.stat.warn{border-color:var(--warn);background:var(--warn-bg)}
+.list{display:flex;flex-direction:column;gap:8px}
+.item{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:start}
+.item .lote{font-family:var(--f-code);font-weight:700;font-size:16px;word-break:break-all}
+.item .meta{font-size:14px;color:var(--muted);grid-column:1/2}
+.item .side{text-align:right;font-family:var(--f-code);font-size:14px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.item .actions{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
+.pill{display:inline-block;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;text-transform:uppercase;letter-spacing:.05em;vertical-align:middle}
+.pill.new{background:var(--ok-bg);color:var(--ok)}
+.pill.re{background:var(--warn-bg);color:var(--warn)}
+.pill.long{background:var(--bad-bg);color:var(--bad)}
+.pill.mod{background:var(--frost);color:var(--accent)}
+.pill.pre{background:#efe3fb;color:#6b2fa3}
+.pill.fin{background:var(--line);color:var(--muted)}
+.pill.emp{background:var(--frost);color:var(--ink)}
+.seg{display:grid;grid-template-columns:1fr 1fr;border:1.5px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{min-height:46px;border:0;background:var(--bg);font-weight:700;font-size:16px;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink)}
+.dgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.dgrid label.f input{min-height:42px;font-size:15px;padding:8px 10px}
+.dgrid label.f:nth-child(1),.dgrid label.f:nth-child(n+4){grid-column:1/-1}
+.loginscr{position:fixed;inset:0;z-index:55;background:var(--bg);display:flex;align-items:center;justify-content:center;overflow:auto;
+  padding:calc(16px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.loginbox{width:100%;max-width:400px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px 18px;display:flex;flex-direction:column;gap:12px}
+.loginlogo{width:56px;height:56px;border-radius:14px;background:var(--ink);color:var(--bg);display:flex;align-items:center;justify-content:center}
+.loginlogo svg{width:32px;height:32px}
+.userchip{font-size:12px;font-weight:700;border-radius:6px;padding:4px 8px;border:1px solid currentColor;background:transparent;color:inherit;cursor:pointer;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (max-width:480px){.hdr-right .datebadge{display:none}.brand small{display:none}}
+.urow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.urow .actions{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
+.okbox{background:var(--surface);margin:auto;width:min(92%,420px);border-radius:16px;padding:28px 20px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
+.ok-bg{align-items:center}
+.okicon{width:72px;height:72px;border-radius:50%;background:var(--ok);color:#fff;display:flex;align-items:center;justify-content:center}
+.okicon svg{width:44px;height:44px}
+.oktit{font-size:22px}
+@media (prefers-reduced-motion:no-preference){.okbox{animation:pop .2s ease-out}@keyframes pop{from{transform:scale(.9);opacity:.5}}}
+.spinner{width:36px;height:36px;border-radius:50%;border:4px solid var(--line);border-top-color:var(--accent);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;color:var(--muted);padding:24px 12px;border:1.5px dashed var(--line);border-radius:10px}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--surface);border-top:1px solid var(--line);
+  display:grid;grid-template-columns:repeat(5,1fr);padding:0 env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)}
+nav.tabs button{background:none;border:0;min-height:68px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer}
+nav.tabs button svg{width:24px;height:24px}
+nav.tabs button[aria-current=page]{color:var(--accent)}
+nav.tabs button.scan{color:var(--accent-ink)}
+nav.tabs button.scan span.ic{background:var(--accent);border-radius:12px;padding:6px 14px;display:flex}
+nav.tabs button.scan[aria-current=page] span.ic{box-shadow:0 0 0 3px var(--frost)}
+nav.tabs button.scan{color:var(--muted)}
+nav.tabs button.scan svg{color:var(--accent-ink)}
+.sheet-bg{position:fixed;inset:0;background:rgba(5,15,22,.55);z-index:50;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--surface);width:100%;max-width:680px;border-radius:16px 16px 0 0;max-height:92vh;overflow:auto;
+  padding:18px max(16px,env(safe-area-inset-right,0px)) calc(18px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:12px}
+.sheet>*{flex-shrink:0}
+.alert{border-radius:8px;padding:10px 12px;font-size:15px;font-weight:500}
+.alert.bad{background:var(--bad-bg);color:var(--bad);border:1px solid var(--bad)}
+.alert.warn{background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn)}
+.alert.ok{background:var(--ok-bg);color:var(--ok);border:1px solid var(--ok)}
+.raw{white-space:pre-wrap;font-family:var(--f-code);font-size:12px;color:var(--muted);word-break:break-all;background:var(--bg);border-radius:6px;padding:8px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(86px + env(safe-area-inset-bottom,0px));z-index:60;background:var(--ink);color:var(--bg);padding:12px 16px;border-radius:8px;font-weight:600;max-width:calc(100% - 32px);text-align:center}
+.small{font-size:13px;color:var(--muted)}
+.mono{font-family:var(--f-code)}
+.hr{height:1px;background:var(--line)}
+@media (prefers-reduced-motion:no-preference){.sheet{animation:up .18s ease-out}@keyframes up{from{transform:translateY(24px);opacity:.6}}}
+</style>
+</head>
+<body>
+<div style="position:fixed;left:0;right:0;bottom:0;z-index:9999;background:#7c3aed;color:#fff;font:700 11px system-ui;text-align:center;padding:2px;pointer-events:none">VERSÃO DE TESTE · banco Supabase</div>
+<div class="app">
+  <header class="top">
+    <div class="brand"><b>Monitor de Antecâmara</b><small>Lotes e pré-lotes</small></div>
+    <div class="hdr-right"><button class="syncbadge" id="syncBadge" hidden></button><button class="userchip" id="userChip" hidden></button><div class="datebadge" id="hdrDate"></div></div>
+  </header>
+
+  <main>
+    <!-- BIPAR -->
+    <section class="view" id="v-bipar">
+      <div class="banner" id="ctxBanner" hidden></div>
+      <div class="locbar">
+        <div style="flex:0 0 auto" class="lbl">Local<br>atual</div>
+        <select id="locAtual" aria-label="Local atual"></select>
+      </div>
+      <div class="reader-wrap">
+        <video id="video" playsinline muted hidden></video>
+        <div class="aim" id="aim" hidden></div>
+        <div class="camtools" id="camTools" hidden><button id="btnTorch" hidden>Lanterna</button></div>
+        <div class="reader-idle" id="readerIdle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 7V4h3M21 7V4h-3M3 17v3h3M21 17v3h-3"/><rect x="7" y="7" width="4" height="4"/><rect x="13" y="13" width="4" height="4"/><path d="M13 7h4v4M7 13h4v4"/></svg>
+          <div>Aponte a câmera para o QR code da etiqueta do lote.<br>Para pré-lote, use <b>Pré-lote (foto)</b>.</div>
+          <button class="btn" id="btnStart">Abrir câmera</button>
+          <div class="small" style="color:#9fbccb" id="camMsg"></div>
+        </div>
+      </div>
+      <div class="row">
+        <button class="btn ghost" id="btnStop" hidden>Parar câmera</button>
+        <label class="btn sec" style="cursor:pointer" for="fotoPre">Pré-lote (foto)</label>
+        <button class="btn sec" id="btnManual">Digitar</button>
+      </div>
+      <input type="file" id="fotoPre" accept="image/*" capture="environment" hidden>
+      <div class="card" id="camHelp" hidden></div>
+      <div class="card" id="lastCard" hidden></div>
+    </section>
+
+    <!-- HOJE -->
+    <section class="view" id="v-hoje" hidden>
+      <div class="row" style="align-items:center"><h2 style="flex:2 1 auto">Monitoramento de hoje</h2><button class="btn sm" style="flex:0 0 auto" id="btnExportTop">Exportar Excel</button></div>
+      <div class="stats" id="stats"></div>
+      <div class="card" id="pendCard"></div>
+      <h3>Bipagens do dia</h3>
+      <div class="list" id="listHoje"></div>
+    </section>
+
+    <!-- LOTES -->
+    <section class="view" id="v-lotes" hidden>
+      <h2>Lotes</h2>
+      <input type="search" id="qLote" placeholder="Buscar lote…" aria-label="Buscar lote">
+      <div class="list" id="listLotes"></div>
+    </section>
+
+    <!-- LOCAIS -->
+    <section class="view" id="v-locais" hidden>
+      <h2>Locais cadastrados</h2>
+      <div class="card">
+        <label class="f">Armazém / antecâmara<input type="text" id="locArm" placeholder="Ex.: Antecâmara 02"></label>
+        <label class="f">Posição<input type="text" id="locPos" placeholder="Ex.: Rua B · Palete 04"></label>
+        <button class="btn" id="btnAddLoc">Cadastrar local</button>
+      </div>
+      <div class="list" id="listLocais"></div>
+    </section>
+
+    <!-- AJUSTES -->
+    <section class="view" id="v-ajustes" hidden>
+      <h2>Exportar e ajustes</h2>
+      <div class="card">
+        <h3>Exportar para Excel</h3>
+        <div class="row">
+          <label class="f">De<input type="date" id="expDe"></label>
+          <label class="f">Até<input type="date" id="expAte"></label>
+        </div>
+        <div class="row">
+          <button class="btn" id="btnExport">Gerar planilha</button>
+          <button class="btn ghost" id="btnExportAll">Exportar tudo</button>
+        </div>
+        <div class="small">A planilha traz as abas Bipagens, Lotes (situação), Checklist de hoje, Checklists e Locais.</div>
+      </div>
+
+      <div class="card">
+        <h3>Identificação automática</h3>
+        <div class="small"><b>Empresa pelo lote:</b> 2º ao 4º caractere "WML" = Basf · 3º e 4º "DM" = Dois Marcos · outros = Terceiro.<br>
+        <b>Basf:</b> lote lido do link do QR (oag.cc/t/LOTE). <b>Dois Marcos:</b> lote direto no QR.<br>
+        <b>Pré-lote:</b> número lido do texto da foto ("Pré-LOTE N."); o QR do pré-lote fica vinculado e, depois da 1ª foto, a câmera ao vivo já reconhece.</div>
+        <label class="f">Testar conteúdo de um QR<textarea id="testRaw" placeholder="Cole aqui o texto lido de um QR"></textarea></label>
+        <div class="raw" id="testOut">Resultado do teste aparece aqui.</div>
+      </div>
+
+      <div class="card">
+        <h3>Planilha Google · vários aparelhos</h3>
+        <div class="small">A planilha é o banco de dados central: cada bipagem é enviada na hora e o app baixa as bipagens, checklists e locais dos outros aparelhos. Use a mesma URL em todos os celulares. Sem internet, fica numa fila e é enviado quando a conexão voltar.</div>
+        <label class="f">Endereço do app da planilha<input type="text" id="cfgUrl" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off" inputmode="url"></label>
+        <input type="hidden" id="cfgAparelho">
+        <div class="row">
+          <button class="btn" id="btnCfgSave">Salvar e testar</button>
+          <button class="btn sec" id="btnSyncAll">Enviar histórico</button>
+        </div>
+        <div class="raw" id="syncInfo">Planilha não configurada.</div>
+      </div>
+
+      <div class="card">
+        <h3>Painel em tempo real</h3>
+        <div class="small">Números do dia, gráficos e lotes ativos de todos os aparelhos, atualizados a cada minuto. Use o mesmo usuário e senha.</div>
+        <a class="btn sec" href="painel.html" target="_blank" rel="noopener" style="text-decoration:none">Abrir painel</a>
+      </div>
+
+      <div class="card">
+        <h3>Usuários</h3>
+        <div class="small">Cadastro de quem pode usar o app. Somente administradores acessam, com usuário e senha. Todos os cadastros ficam registrados na planilha (abas "Usuários" e "Log de usuários").</div>
+        <button class="btn sec" id="btnUsuarios">Gerenciar usuários</button>
+      </div>
+
+      <div class="card">
+        <h3>Backup</h3>
+        <div class="small">Os dados ficam salvos neste celular, neste navegador. Exporte com frequência.</div>
+        <div class="row">
+          <button class="btn sec" id="btnBackup">Salvar backup (.json)</button>
+          <label class="btn sec" style="cursor:pointer">Restaurar backup<input type="file" id="fileRestore" accept="application/json,.json" hidden></label>
+        </div>
+        <button class="btn danger" id="btnWipe">Apagar todas as bipagens</button>
+      </div>
+    </section>
+  </main>
+
+  <nav class="tabs" aria-label="Navegação">
+    <button data-v="hoje"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Hoje</button>
+    <button data-v="lotes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 12l9 4 9-4M3 17l9 4 9-4"/></svg>Lotes</button>
+    <button data-v="bipar" class="scan"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V4h3M21 7V4h-3M3 17v3h3M21 17v3h-3M7 12h10"/></svg></span>Bipar</button>
+    <button data-v="locais"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7-6.2-7-11a7 7 0 0114 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>Locais</button>
+    <button data-v="ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>Exportar</button>
+  </nav>
+</div>
+
+<div id="sheetHost"></div>
+<div class="loginscr" id="loginScr">
+  <form class="loginbox" id="loginForm" autocomplete="on">
+    <div class="loginlogo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7V4h3M21 7V4h-3M3 17v3h3M21 17v3h-3M7 12h10"/></svg></div>
+    <h2 id="lgTit">Monitor de Antecâmara</h2>
+    <div class="small" id="lgSub">Entre com o seu usuário e senha.</div>
+    <label class="f" id="lgNomeBox" hidden>Seu nome<input type="text" id="lgNome" autocomplete="name" placeholder="Ex.: Willian Gomes"></label>
+    <label class="f">Usuário<input type="text" id="lgUsuario" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="Ex.: willian"></label>
+    <label class="f">Senha<input type="password" id="lgSenha" autocomplete="current-password"></label>
+    <label class="f" id="lgSenha2Box" hidden>Repita a senha<input type="password" id="lgSenha2" autocomplete="new-password"></label>
+    <div id="lgMsg"></div>
+    <button class="btn" type="submit" id="lgBtn">Entrar</button>
+    <div class="small" style="text-align:center">Versão 2026.10.19d</div>
+  </form>
+</div>
+
+<script>
+/* ================== DADOS ================== */
+const KEY = 'monitorAntecamara.supabase.v1';   // TESTE: dados separados do app oficial
+/* Planilha central (banco de dados de todos os aparelhos) */
+const URL_PLANILHA = 'https://wohjgoeovnlcxevypqzy.supabase.co';
+/* ===== BANCO: Supabase (versão de TESTE) ===== */
+const SUPA_URL = 'https://wohjgoeovnlcxevypqzy.supabase.co', SUPA_KEY = 'sb_publishable_d2r_7z22qs9bBEJvHfLUVw_JSrIuDgc';
+const SUPA_H = { apikey:SUPA_KEY, Authorization:'Bearer '+SUPA_KEY };
+async function supaRpc(fn, args){
+  const r = await fetch(SUPA_URL + '/rest/v1/rpc/' + fn, { method:'POST', headers:Object.assign({ 'Content-Type':'application/json' }, SUPA_H), body:JSON.stringify(args) });
+  const t = await r.text(); let j; try{ j = JSON.parse(t); }catch(e){ throw new Error('O banco (Supabase) não respondeu como esperado.'); }
+  if(!r.ok) throw new Error((j && (j.message || j.error)) || ('Erro ' + r.status + ' no banco'));
+  return j;
+}
+const supaPost = body => supaRpc('api_post', { d: body });
+const supaGet = params => supaRpc('api_get', { p: params });
+// foto do pré-lote: vai para o armazenamento do Supabase (pasta "fotos") e a bipagem guarda o link
+async function supaFoto(id, dataUrl){
+  const blob = await (await fetch(dataUrl)).blob(), nome = id + '.jpg';
+  const r = await fetch(SUPA_URL + '/storage/v1/object/fotos/' + encodeURIComponent(nome), { method:'POST', headers:Object.assign({ 'Content-Type':'image/jpeg', 'x-upsert':'false' }, SUPA_H), body:blob });
+  if(!r.ok && r.status !== 409 && r.status !== 400) throw new Error('Falha ao enviar a foto (' + r.status + ')');
+  return SUPA_URL + '/storage/v1/object/public/fotos/' + encodeURIComponent(nome);
+}
+
+const DEFAULT_MODELOS = [
+  { id:'basf', nome:'Basf', identificar:'basf', regexLote:'' },
+  { id:'doismarcos', nome:'Dois Marcos', identificar:'dois\\s*marcos|doismarcos|DMC', regexLote:'' }
+];
+/* As etiquetas Basf e Dois Marcos trazem no QR apenas um código numérico (ex.: 9913, 9987).
+   Na 1ª leitura de um código o operador digita o lote impresso; o vínculo fica salvo em db.etiquetas. */
+let db = { locais:[], registros:[], modelos:DEFAULT_MODELOS, localAtual:'', modeloAtual:'Basf', etiquetas:{}, planilha:{ url:URL_PLANILHA, aparelho:'' }, filaExcluir:[], checklists:{}, filaChecklist:[], empresaPreLote:'Dois Marcos' };
+function load(){
+  try{ const s = localStorage.getItem(KEY); if(s){ const d = JSON.parse(s); db = Object.assign(db, d); if(!db.modelos||!db.modelos.length) db.modelos = DEFAULT_MODELOS; db.etiquetas = db.etiquetas||{}; db.planilha = db.planilha||{url:'',aparelho:''}; db.filaExcluir = db.filaExcluir||[]; db.checklists = db.checklists||{}; db.filaChecklist = db.filaChecklist||[]; } migrar(); }
+  catch(e){ console.warn(e); }
+}
+function migrar(){
+  db.planilha = db.planilha || { url:'', aparelho:'' };
+  db.filaLocais = db.filaLocais || [];
+  if(!db.planilha.url && !db.planilha.desligada){
+    db.planilha.url = URL_PLANILHA;
+    // primeira conexão: envia também os locais já cadastrados neste celular
+    (db.locais||[]).forEach(l=>{ if(!db.filaLocais.some(x=>x.id===l.id)) db.filaLocais.push({ ...l, situacao:'Ativo' }); });
+  }
+  if(!db.eventosCk){ db.eventosCk = Object.entries(db.checklists||{}).map(([d,c])=>({ id:uid(), acao:'Concluído', data:d, ts:c.ts, aparelho:c.aparelho||'' })); }
+}
+function save(){
+  try{ localStorage.setItem(KEY, JSON.stringify(db)); }
+  catch(e){ toast('Não foi possível salvar no aparelho. Exporte os dados agora.'); }
+}
+const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+
+/* ================== DATAS ================== */
+const pad = n => String(n).padStart(2,'0');
+const dkey = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const hora = d => `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+const br = k => { const [y,m,d] = k.split('-'); return `${d}/${m}/${y}`; };
+const hoje = () => dkey(new Date());
+function dur(ms){
+  if(!ms || ms<0) return '0h 00m';
+  const m = Math.floor(ms/60000), d = Math.floor(m/1440), h = Math.floor((m%1440)/60), mi = m%60;
+  return (d? d+'d ':'') + h+'h '+pad(mi)+'m';
+}
+const horasDec = ms => Math.round(ms/36000)/100;
+
+/* ================== RECONHECIMENTO DO QR ================== */
+function detectarModelo(raw){
+  // Regras fixas das etiquetas conhecidas
+  if(/oag\.cc\//i.test(raw)) return db.modelos.find(m=>m.id==='basf') || null;
+  if(/^\s*\d{2}DMC\w+\s*$/i.test(raw)) return db.modelos.find(m=>m.id==='doismarcos') || null;
+  for(const m of db.modelos){
+    try{ if(m.identificar && new RegExp(m.identificar,'i').test(raw)) return m; }catch(e){}
+  }
+  return null;
+}
+function extrairLote(raw, modelo){
+  const s = raw.trim();
+  if(modelo && modelo.regexLote){
+    try{ const r = new RegExp(modelo.regexLote,'i').exec(s); if(r) return (r[1]||r[0]).trim(); }catch(e){}
+  }
+  let r;
+  // Basf: https://oag.cc/t/LOTE?ic=...
+  if((r = /oag\.cc\/t\/([^\/?#\s]+)/i.exec(s))) return decodeURIComponent(r[1]).toUpperCase();
+  // GS1 Digital Link: .../10/LOTE
+  if((r = /\/10\/([^\/?#]+)/.exec(s))) return decodeURIComponent(r[1]);
+  // GS1 com parênteses: (10)LOTE
+  if((r = /\(10\)([^(\s]+)/.exec(s))) return r[1];
+  // GS1 bruto: 01 + 14 dígitos, AIs de data opcionais, 10 + lote até FNC1
+  const gs = s.replace(/^\]d2|^\]Q3/,'');
+  if((r = /^01\d{14}(?:(?:11|13|15|17)\d{6})*10([^\x1d]{1,20})/.exec(gs))) return r[1];
+  // Parâmetro de URL
+  try{ const u = new URL(s); for(const k of ['lote','lot','batch','l']){ if(u.searchParams.get(k)) return u.searchParams.get(k); } }catch(e){}
+  // Outros links: usa o último trecho do caminho se parecer um lote
+  try{ const u = new URL(s); const seg = u.pathname.split('/').filter(Boolean).pop()||''; if(/^[A-Za-z0-9\-]{5,25}$/.test(seg) && /\d/.test(seg) && /[A-Za-z]/.test(seg)) return seg.toUpperCase(); }catch(e){}
+  // Texto rotulado: LOTE: X / Lot X / Batch X
+  if((r = /(?:lote|lot|batch|partida)\s*(?:n[ºo°.]*)?\s*[:=\-]?\s*([A-Za-z0-9\-\/\.]+)/i.exec(s))) return r[1];
+  // Campos separados por ; | ou quebra de linha: tenta o campo rotulado
+  // Conteúdo curto sem espaço: o próprio conteúdo é o lote
+  if(s.length<=40 && !/\s/.test(s) && !/^\d{1,10}$/.test(s)) return s;
+  return '';
+}
+
+/* ================== REGRAS DE NEGÓCIO ==================
+   1. Mesmo lote no mesmo dia (até 00h): exige outra posição e NÃO é reincidência.
+   2. Bipado num dia seguinte ao início da sequência: reincidente (fora da câmara fria).
+      Tempo fora = hora da bipagem − primeira bipagem da sequência.
+   3. Checklist concluído no dia D: lote ativo que não foi bipado em D é "Finalizado".
+      Sem checklist, o lote continua ativo. Bipado de novo após finalizado = nova entrada.
+   4. Empresa pelo lote: 2º-4º caracteres "WML" = Basf; 3º-4º "DM" = Dois Marcos; senão Terceiro.
+   5/6. Pré-lotes seguem as mesmas regras; identificados por foto da etiqueta. */
+function empresaDoLote(l){
+  l = String(l||'').toUpperCase();
+  if(l.substr(1,3)==='WML') return 'Basf';
+  if(l.substr(2,2)==='DM') return 'Dois Marcos';
+  return 'Terceiro';
+}
+const tipoDe = r => r.tipo || 'Lote';
+const chave = (tipo, lote) => (tipo==='Pré-lote'?'P:':'L:') + String(lote).toUpperCase();
+const diasEntre = (a,b) => Math.round((new Date(b+'T12:00')-new Date(a+'T12:00'))/86400000);
+let SESSAO = null;   // usuário logado (só em memória: fechou o app, precisa entrar de novo)
+const quem = () => SESSAO ? SESSAO.nome : (db.planilha && db.planilha.aparelho) || '';
+let SEQ = [], ESTADO = {}, CK = {}, REMOTO = { registros:[], eventos:[], em:0 };
+/* Bipagens deste aparelho + dos outros aparelhos (vindas da planilha), sem as excluídas */
+function todos(){
+  const exc = new Set(db.filaExcluir), ids = new Set(db.registros.map(r=>r.id));
+  return db.registros.filter(r=>!exc.has(r.id)).concat(REMOTO.registros.filter(r=>!ids.has(r.id) && !exc.has(r.id)));
+}
+/* Checklist válido de cada dia: o último evento (Concluído/Reaberto) de qualquer aparelho */
+function calcularChecklists(){
+  const ev = new Map(); REMOTO.eventos.concat(db.eventosCk).forEach(e=>{ if(e && e.ts) ev.set(e.id, { ...e, data: diaValido(e.data, e.ts) }); });
+  const ult = {}; [...ev.values()].forEach(e=>{ if(!ult[e.data] || e.ts > ult[e.data].ts) ult[e.data] = e; });
+  CK = {}; Object.values(ult).forEach(e=>{ if(e.acao==='Concluído') CK[e.data] = e; });
+}
+function vinculoCodigo(cod){
+  if(!cod) return null;
+  const loc = db.etiquetas['cod|'+cod] || Object.entries(db.etiquetas).find(([k])=>k.endsWith('|'+cod))?.[1];
+  if(loc) return loc;
+  const r = todos().filter(x=>x.codigo===cod).sort((a,b)=>b.ts-a.ts)[0];
+  return r ? { lote:r.lote, tipo:tipoDe(r), dados:r.dados } : null;
+}
+function recompute(){
+  calcularChecklists();
+  const regs = todos().sort((a,b)=>a.ts-b.ts);
+  const porDia = {};
+  regs.forEach(r=>{ (porDia[r.data] = porDia[r.data]||[]).push(r); });
+  const dias = [...new Set([...Object.keys(porDia), ...Object.keys(CK)])].sort();
+  SEQ = []; ESTADO = {};
+  for(const d of dias){
+    const posDia = {};
+    for(const r of (porDia[d]||[])){
+      r.tipo = tipoDe(r); r.empresa = r.tipo==='Pré-lote' ? '' : empresaDoLote(r.lote);
+      const k = chave(r.tipo, r.lote);
+      let s = ESTADO[k];
+      if(!s || s.final){
+        s = ESTADO[k] = { k, lote:r.lote, tipo:r.tipo, empresa:r.empresa, start:r.ts, startData:d, final:null, n:0, dias:new Set(), locais:new Set(), regs:[] };
+        SEQ.push(s);
+      }
+      s.n++; s.dias.add(d); s.locais.add(r.localNome); s.last = r; s.regs.push(r);
+      posDia[k] = (posDia[k]||0) + 1;
+      r.posDia = posDia[k];
+      r.inicioTs = s.start;
+      r.foraMs = r.ts - s.start;
+      r.diaSeq = diasEntre(s.startData, d) + 1;
+      r.reincidente = d > s.startData;
+    }
+    const ck = CK[d];
+    if(ck) Object.values(ESTADO).forEach(s=>{ if(!s.final && s.last.data < d) s.final = { data:d, ts:ck.ts }; });
+  }
+}
+/* Lotes ativos (sem finalização) que ainda não foram bipados hoje */
+function ativosPendentes(){
+  const t = hoje();
+  return Object.values(ESTADO).filter(s=>!s.final && s.last.data < t).sort((a,b)=>a.start-b.start);
+}
+function conferidosHoje(){
+  const t = hoje();
+  return Object.values(ESTADO).filter(s=>s.last.data===t && s.startData < t);
+}
+
+/* ================== FOTOS (pré-lotes) ================== */
+let idbP = null;
+function idb(){
+  if(!idbP) idbP = new Promise((res,rej)=>{ const q = indexedDB.open('monitorAntecamaraFotosSupabase',1); q.onupgradeneeded=()=>q.result.createObjectStore('fotos'); q.onsuccess=()=>res(q.result); q.onerror=()=>rej(q.error); });
+  return idbP;
+}
+async function fotoOp(modo, fn){ const d = await idb(); return new Promise((res,rej)=>{ const t = d.transaction('fotos', modo); const st = t.objectStore('fotos'); let out; const q = fn(st); if(q) q.onsuccess = ()=>out = q.result; t.oncomplete = ()=>res(out); t.onerror = ()=>rej(t.error); }); }
+const fotoPut = (id, data) => fotoOp('readwrite', st=>st.put(data, id));
+const fotoGet = id => fotoOp('readonly', st=>st.get(id)).catch(()=>null);
+const fotoDel = id => fotoOp('readwrite', st=>st.delete(id)).catch(()=>{});
+const fotoClear = () => fotoOp('readwrite', st=>st.clear()).catch(()=>{});
+async function comprimirFoto(bmp, lado=1280, q=0.72){
+  const sc = Math.min(1, lado/Math.max(bmp.width, bmp.height));
+  const c = document.createElement('canvas'); c.width = Math.round(bmp.width*sc); c.height = Math.round(bmp.height*sc);
+  c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+  return c.toDataURL('image/jpeg', q);
+}
+async function verFoto(id){
+  const f = await fotoGet(id);
+  if(!f){ toast('Foto não encontrada neste aparelho.'); return; }
+  const host = $('#sheetHost');
+  host.innerHTML = `<div class="sheet-bg" id="sbg"><div class="sheet"><h2>Foto da etiqueta</h2><img src="${f}" alt="Foto da etiqueta" style="width:100%;border-radius:8px"><button class="btn ghost" id="fClose">Fechar</button></div></div>`;
+  const fechar = ()=>{ host.innerHTML=''; resumeCam(); };
+  $('#fClose').onclick = fechar; $('#sbg').onclick = e=>{ if(e.target.id==='sbg') fechar(); };
+}
+document.addEventListener('click', e=>{ const b = e.target.closest('[data-foto]'); if(b){ e.preventDefault(); pauseCam(); verFoto(b.dataset.foto); } });
+
+/* ================== UI GERAL ================== */
+const $ = s => document.querySelector(s);
+const esc = s => String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let toastT;
+function toast(msg){
+  let t = $('#toast'); if(!t){ t = document.createElement('div'); t.id='toast'; t.className='toast'; t.setAttribute('role','status'); document.body.appendChild(t); }
+  t.textContent = msg; t.hidden=false; clearTimeout(toastT); toastT = setTimeout(()=>t.hidden=true, 2800);
+}
+function beep(ok=true){
+  try{ navigator.vibrate && navigator.vibrate(ok?80:[60,60,60]); }catch(e){}
+  try{ const a = new (window.AudioContext||window.webkitAudioContext)(); const o=a.createOscillator(), g=a.createGain(); o.frequency.value = ok?1250:320; g.gain.value=.12; o.connect(g).connect(a.destination); o.start(); o.stop(a.currentTime+(ok?.12:.3)); }catch(e){}
+}
+const localNome = l => l ? (l.armazem ? l.armazem+' · ' : '') + l.posicao : '';
+function locOptions(sel, incluirVazio){
+  return (incluirVazio?'<option value="">Selecione o local…</option>':'') +
+    db.locais.map(l=>`<option value="${l.id}" ${l.id===sel?'selected':''}>${esc(localNome(l))}</option>`).join('');
+}
+
+let viewAtual = 'bipar';
+function show(v){
+  viewAtual = v;
+  document.querySelectorAll('section.view').forEach(s=>s.hidden = s.id!=='v-'+v);
+  document.querySelectorAll('nav.tabs button').forEach(b=>{ if(b.dataset.v===v) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current'); });
+  if(v!=='bipar') stopCam();
+  render();
+  if(v==='hoje' || v==='lotes') sincronizar();
+  window.scrollTo(0,0);
+}
+document.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>show(b.dataset.v));
+
+function render(){
+  recompute();
+  $('#hdrDate').textContent = br(hoje());
+  // local atual
+  const la = $('#locAtual');
+  la.innerHTML = db.locais.length ? locOptions(db.localAtual, true) : '<option value="">Cadastre um local primeiro</option>';
+  if(viewAtual==='hoje') renderHoje();
+  if(viewAtual==='lotes') renderLotes();
+  if(viewAtual==='locais') renderLocais();
+  if(viewAtual==='ajustes') renderAjustes();
+}
+$('#locAtual').onchange = e => { db.localAtual = e.target.value; save(); };
+
+/* ================== HOJE ================== */
+function pillsReg(r){
+  let p = '';
+  if(r.tipo==='Pré-lote') p += '<span class="pill pre">Pré-lote</span> ';
+  if(r.reincidente) p += `<span class="pill ${r.foraMs>=86400000?'long':'re'}">Reincidente · dia ${r.diaSeq}</span>`;
+  else if(r.posDia>1) p += `<span class="pill mod">Mesmo dia · ${r.posDia}ª posição</span>`;
+  else p += '<span class="pill new">1ª bipagem</span>';
+  return p;
+}
+function itemHTML(r, comAcoes){
+  return `<div class="item">
+    <div><span class="lote">${esc(r.lote)}</span> ${pillsReg(r)}</div>
+    <div class="side">${r.hora.slice(0,5)}</div>
+    <div class="meta">${esc(r.localNome)}${r.empresa?` · <span class="pill emp">${esc(r.empresa)}</span>`:''}${r.remoto&&r.aparelho?` · <span class="small">${esc(r.aparelho)}</span>`:''}</div>
+    <div class="side" title="Tempo fora da câmara fria">${r.reincidente?'⏱ '+dur(r.foraMs):''}</div>
+    ${comAcoes||r.temFoto||r.fotoUrl?`<div class="actions">${r.temFoto?`<button class="btn ghost sm" data-foto="${r.id}">Ver foto</button>`:(r.fotoUrl?`<a class="btn ghost sm" href="${esc(r.fotoUrl)}" target="_blank" rel="noopener">Ver foto</a>`:'')}${comAcoes?`<button class="btn ghost sm" data-del="${r.id}">Excluir bipagem</button>`:''}</div>`:''}
+  </div>`;
+}
+function renderHoje(){
+  const t = hoje();
+  const regs = todos().filter(r=>r.data===t).sort((a,b)=>b.ts-a.ts);
+  const chaves = new Set(regs.map(r=>chave(r.tipo,r.lote)));
+  const reinc = new Set(regs.filter(r=>r.reincidente).map(r=>chave(r.tipo,r.lote)));
+  const maior = regs.reduce((m,r)=>Math.max(m,r.foraMs||0),0);
+  $('#stats').innerHTML = `
+    <div class="stat"><div class="n">${regs.length}</div><div class="t">Bipagens hoje</div></div>
+    <div class="stat"><div class="n">${chaves.size}</div><div class="t">Lotes e pré-lotes</div></div>
+    <div class="stat ${reinc.size?'warn':''}"><div class="n">${reinc.size}</div><div class="t">Reincidentes</div></div>
+    <div class="stat"><div class="n" style="font-size:22px">${dur(maior)}</div><div class="t">Maior tempo fora</div></div>`;
+  const ck = CK[t];
+  const pend = ativosPendentes(), conf = conferidosHoje();
+  if(ck){
+    const fin = SEQ.filter(s=>s.final && s.final.data===t);
+    $('#pendCard').innerHTML = `<h3>Checklist de hoje</h3>
+      <div class="alert ok">Checklist concluído às ${hora(new Date(ck.ts)).slice(0,5)}${ck.aparelho?' · '+esc(ck.aparelho):''}. ${fin.length} finalizado(s), ${conf.length} reincidente(s) conferido(s).</div>
+      ${fin.length?`<div class="list">${fin.map(s=>`<div class="item"><div><span class="lote">${esc(s.lote)}</span> ${s.tipo==='Pré-lote'?'<span class="pill pre">Pré-lote</span>':''} <span class="pill fin">Finalizado</span></div><div class="side">${dur(s.last.ts-s.start)}</div><div class="meta">Visto pela última vez em ${br(s.last.data)} · ${esc(s.last.localNome)}</div></div>`).join('')}</div>`:''}
+      <button class="btn ghost sm" id="btnReabrir">Reabrir checklist</button>`;
+  } else {
+    $('#pendCard').innerHTML = `<h3>Checklist de hoje · faltam ${pend.length}</h3>
+      ${pend.length?`<div class="small">Lotes ativos ainda não encontrados hoje. Ao concluir o checklist, os que não forem bipados serão <b>finalizados</b>.</div>
+      <div class="list">${pend.map(s=>`<div class="item"><div><span class="lote">${esc(s.lote)}</span> ${s.tipo==='Pré-lote'?'<span class="pill pre">Pré-lote</span>':''}</div><div class="side">dia ${diasEntre(s.startData,t)+1}</div><div class="meta">Último local: ${esc(s.last.localNome)} · ${br(s.last.data)} ${s.last.hora.slice(0,5)}</div></div>`).join('')}</div>`
+      : `<div class="small">${SEQ.length?'Todos os lotes ativos já foram conferidos hoje.':'Nenhum lote ativo de dias anteriores.'}</div>`}
+      <button class="btn" id="btnChecklist">Concluir checklist do dia</button>`;
+  }
+  $('#listHoje').innerHTML = regs.length ? regs.map(r=>itemHTML(r,true)).join('') : `<div class="empty">Nenhuma bipagem hoje. Vá em <b>Bipar</b>, escolha o local e leia o QR code da etiqueta.</div>`;
+}
+$('#pendCard').onclick = async e => {
+  const t = hoje();
+  if(e.target.id==='btnChecklist'){
+    let aviso = '';
+    if(db.planilha.url){
+      e.target.disabled = true; e.target.textContent = 'Buscando bipagens dos outros aparelhos…';
+      await sincronizar();
+      if(syncErro || !navigator.onLine) aviso = '\n\nATENÇÃO: não consegui atualizar com os outros aparelhos. Bipagens feitas em outro celular podem não estar consideradas.';
+      render();
+    }
+    const n = ativosPendentes().length;
+    if(!confirm((n ? `Concluir o checklist de hoje?\n\n${n} lote(s) não encontrado(s) serão FINALIZADOS.` : 'Concluir o checklist de hoje?') + aviso)){ render(); return; }
+    const ev = { id:uid(), acao:'Concluído', data:t, ts:Date.now(), aparelho:quem() };
+    db.eventosCk.push(ev);
+    recompute();
+    const fin = SEQ.filter(s=>s.final && s.final.data===t);
+    db.filaChecklist.push({ id:ev.id, acao:'Concluído', dataKey:t, ts:ev.ts, data:br(t), hora:hora(new Date(ev.ts)), aparelho:ev.aparelho,
+      conferidos:conferidosHoje().length,
+      finalizados:fin.map(s=>({ lote:s.lote, tipo:s.tipo, empresa:s.empresa||'', inicio:br(s.startData)+' '+hora(new Date(s.start)), ultima:br(s.last.data)+' '+s.last.hora, local:s.last.localNome, tempoFora:dur(s.last.ts-s.start), horasFora:horasDec(s.last.ts-s.start) })) });
+    save(); render(); toast(`Checklist concluído · ${fin.length} finalizado(s)`); sincronizar();
+  }
+  if(e.target.id==='btnReabrir'){
+    if(!confirm('Reabrir o checklist de hoje? Os lotes finalizados hoje voltam a ficar ativos.')) return;
+    const ev = { id:uid(), acao:'Reaberto', data:t, ts:Date.now(), aparelho:quem() };
+    db.eventosCk.push(ev);
+    db.filaChecklist.push({ id:ev.id, acao:'Reaberto', dataKey:t, ts:ev.ts, data:br(t), hora:hora(new Date(ev.ts)), aparelho:ev.aparelho, conferidos:0, finalizados:[] });
+    save(); render(); toast('Checklist reaberto'); sincronizar();
+  }
+};
+$('#listHoje').onclick = e => {
+  const id = e.target.dataset.del; if(!id) return;
+  if(!confirm('Excluir esta bipagem?')) return;
+  const ex = todos().find(r=>r.id===id);
+  if(ex && (ex.enviado || ex.remoto)) db.filaExcluir.push(id);
+  if(ex && ex.temFoto) fotoDel(id);
+  db.registros = db.registros.filter(r=>r.id!==id); save(); render(); toast('Bipagem excluída'); sincronizar();
+};
+$('#btnExportTop').onclick = () => exportar(hoje(), hoje());
+
+/* ================== LOTES ================== */
+function renderLotes(){
+  const q = $('#qLote').value.trim().toUpperCase(), t = hoje();
+  const arr = SEQ.filter(s=>!q || s.lote.toUpperCase().includes(q)).sort((a,b)=>(a.final?1:0)-(b.final?1:0) || b.last.ts-a.last.ts);
+  $('#listLotes').innerHTML = arr.length ? arr.map(s=>{
+    const u = s.last, fora = u.ts - s.start;
+    const sit = s.final ? `<span class="pill fin">Finalizado ${br(s.final.data).slice(0,5)}</span>`
+      : (s.startData < u.data || s.startData < t ? `<span class="pill ${fora>=86400000?'long':'re'}">Ativo · dia ${diasEntre(s.startData,t)+1}</span>` : '<span class="pill new">Ativo</span>');
+    return `<div class="item">
+      <div><span class="lote">${esc(s.lote)}</span> ${s.tipo==='Pré-lote'?'<span class="pill pre">Pré-lote</span>':''} ${s.empresa?`<span class="pill emp">${esc(s.empresa)}</span>`:''}</div>
+      <div class="side">${s.n}×</div>
+      <div class="meta">Início: ${br(s.startData)} ${hora(new Date(s.start)).slice(0,5)} · Última: ${br(u.data)} ${u.hora.slice(0,5)}<br>${esc(u.localNome)} · Tempo fora: ${dur(fora)}</div>
+      <div class="side">${sit}</div>
+    </div>`;
+  }).join('') : `<div class="empty">${q?'Nenhum lote encontrado.':'Nenhum lote bipado ainda.'}</div>`;
+}
+$('#qLote').oninput = renderLotes;
+
+/* ================== LOCAIS ================== */
+function renderLocais(){
+  const uso = {}; todos().forEach(r=>uso[r.localId]=(uso[r.localId]||0)+1);
+  $('#listLocais').innerHTML = db.locais.length ? db.locais.map(l=>`<div class="item">
+      <div><b>${esc(l.posicao)}</b></div><div class="side small">${uso[l.id]||0} bip.</div>
+      <div class="meta">${esc(l.armazem||'—')}</div>
+      <div class="actions"><button class="btn ghost sm" data-rm="${l.id}">Remover</button></div></div>`).join('')
+    : `<div class="empty">Cadastre as posições das antecâmaras. Ex.: <b>Antecâmara 02</b> · <b>Rua B · Palete 04</b>.</div>`;
+}
+$('#btnAddLoc').onclick = () => {
+  const armazem = $('#locArm').value.trim(), posicao = $('#locPos').value.trim();
+  if(!posicao){ toast('Informe a posição.'); $('#locPos').focus(); return; }
+  if(db.locais.some(l=>l.armazem.toUpperCase()===armazem.toUpperCase() && l.posicao.toUpperCase()===posicao.toUpperCase())){ toast('Este local já está cadastrado.'); return; }
+  const l = { id:uid(), armazem, posicao }; db.locais.push(l); db.filaLocais.push({ ...l, situacao:'Ativo', ts:Date.now() }); sincronizar();
+  if(!db.localAtual) db.localAtual = l.id;
+  save(); $('#locPos').value=''; $('#locPos').focus(); render(); toast('Local cadastrado');
+};
+$('#listLocais').onclick = e => {
+  const id = e.target.dataset.rm; if(!id) return;
+  if(!confirm('Remover este local? As bipagens já feitas continuam com o nome do local.')) return;
+  const rm = db.locais.find(l=>l.id===id); if(rm) db.filaLocais.push({ ...rm, situacao:'Removido', ts:Date.now() });
+  db.locais = db.locais.filter(l=>l.id!==id); if(db.localAtual===id) db.localAtual=''; save(); render(); sincronizar();
+};
+
+/* ================== AJUSTES / MODELOS ================== */
+function renderAjustes(){
+  if(!$('#expDe').value) $('#expDe').value = hoje();
+  if(!$('#expAte').value) $('#expAte').value = hoje();
+}
+function testar(){
+  const raw = $('#testRaw').value; if(!raw){ $('#testOut').textContent='Resultado do teste aparece aqui.'; return; }
+  const l = extrairLote(raw, detectarModelo(raw)), cod = /^\s*\d{1,10}\s*$/.test(raw) ? raw.trim() : '';
+  const v = vinculoCodigo(cod);
+  $('#testOut').innerHTML = cod ? `Código numérico <b>${esc(cod)}</b>: ${v?`vinculado a ${esc(v.tipo||'Lote')} <b>${esc(v.lote)}</b>`:'ainda sem vínculo (1ª leitura pede a identificação)'}`
+    : `Lote: <b>${esc(l||'não encontrado')}</b><br>Empresa: <b>${esc(l?empresaDoLote(l):'—')}</b>`;
+}
+$('#testRaw').oninput = testar;
+
+/* ================== FLUXO DE BIPAGEM ================== */
+function abrirConfirmacao(raw, manual, opts={}){
+  const codigo = raw && /^\s*\d{1,10}\s*$/.test(raw) ? raw.trim() : '';
+  const lido = opts.lido || null;
+  const loteQR = lido ? lido.id : (raw ? extrairLote(raw, detectarModelo(raw)) : '');
+  let tipo = opts.tipo || 'Lote';
+  const foto = opts.foto || null;
+  const vInit = (!lido && codigo) ? vinculoCodigo(codigo) : null;
+  const dados = lido ? lido.dados : Object.assign({}, vInit && vInit.dados);
+  const normId = v => tipo==='Pré-lote' ? normPre(v) : String(v||'').trim().toUpperCase();
+  const CAMPOS_PRE = [['variedade','Variedade'],['categoria','Categoria'],['peso','Peso'],['safra','Safra'],['origem','Origem'],['produzido','Produzido'],['obs','Obs']];  // variedade e linhas longas ocupam a largura toda
+  const temDados = foto || CAMPOS_PRE.some(([k])=>dados[k]);
+  const dadosHTML = temDados ? `<div class="card" id="sDados" style="background:var(--bg);gap:8px"><h3>Dados da etiqueta · confira e corrija se preciso</h3>
+      <div class="dgrid">${CAMPOS_PRE.map(([k,n])=>`<label class="f">${n}<input type="text" id="sd-${k}" data-k="${k}" value="${esc(dados[k]||'')}" autocomplete="off"></label>`).join('')}</div></div>` : '';
+  const vinc = () => vinculoCodigo(codigo);
+  const host = $('#sheetHost');
+  host.innerHTML = `<div class="sheet-bg" id="sbg"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="shT">
+    <h2 id="shT">${foto?'Pré-lote pela foto':(manual?'Registrar manualmente':'Etiqueta lida')}</h2>
+    ${foto?`<img src="${foto}" alt="Foto da etiqueta" style="width:100%;max-height:38vh;object-fit:contain;border-radius:8px;background:#000">`:''}
+    <div class="seg" role="group" aria-label="Tipo"><button type="button" data-t="Lote">Lote</button><button type="button" data-t="Pré-lote">Pré-lote</button></div>
+    ${opts.erroOcr?`<div class="alert warn">Não consegui ler o texto da foto (${esc(opts.erroOcr)}). Digite o número do pré-lote.</div>`:''}
+    ${foto && lido && !lido.id && !opts.erroOcr?'<div class="alert warn">Não encontrei o número do pré-lote na foto. Digite o número impresso em "Pré-LOTE N." ou tire outra foto mais de perto.</div>':''}
+    ${codigo?`<div class="small">Código no QR: <b class="mono" style="font-size:17px;color:var(--ink)">${esc(codigo)}</b></div>`:''}
+    <label class="f"><span id="sLbl">Lote</span><input type="text" id="sLote" value="${esc(loteQR)}" autocomplete="off" autocapitalize="characters" style="font-family:var(--f-code);font-size:20px;font-weight:700"></label>
+    <div class="small" id="sEmpLote">Empresa: <b id="sEmp" style="color:var(--ink)">—</b> (identificada pelo lote)</div>
+    ${dadosHTML}
+    <div id="sVinc"></div>
+    <label class="f">Local<select id="sLoc">${locOptions(db.localAtual, true)}</select></label>
+    <div id="sInfo"></div>
+    ${raw?`<div class="raw">QR: ${esc(raw)}</div>`:''}
+    <div class="row"><button class="btn ghost" id="sCancel">Cancelar</button><button class="btn" id="sOk">Registrar</button></div>
+  </div></div>`;
+  const setTipo = t => { tipo = t; document.querySelectorAll('.seg button').forEach(b=>b.setAttribute('aria-pressed', b.dataset.t===t)); $('#sLbl').textContent = t==='Pré-lote'?'Pré-lote (número)':'Lote'; $('#sEmpLote').hidden = t==='Pré-lote'; if($('#sDados')) $('#sDados').hidden = t!=='Pré-lote'; info(); };
+  document.querySelector('.seg').onclick = e => { if(e.target.dataset.t) setTipo(e.target.dataset.t); };
+  const preencher = () => {
+    if(!codigo) return;
+    const v = vinc();
+    if(v && !(lido && lido.id)){ $('#sLote').value = v.lote; if(v.tipo) tipo = v.tipo; $('#sVinc').innerHTML = `<div class="small">Identificação vinculada a este código em leitura anterior. Corrija se necessário.</div>`; }
+    else if(lido && lido.id) { $('#sVinc').innerHTML = `<div class="small">O QR <b>${esc(codigo)}</b> ficará vinculado a este pré-lote: nas próximas vezes, a câmera ao vivo já reconhece.</div>`; }
+    else if(!v) { $('#sVinc').innerHTML = `<div class="alert warn">Primeira leitura deste código. Digite o lote/pré-lote impresso na etiqueta. Nas próximas leituras ele será preenchido sozinho.</div>`; }
+  };
+  const info = () => {
+    const l = normId($('#sLote').value), loc = $('#sLoc').value, t = hoje();
+    $('#sEmp').textContent = l ? empresaDoLote(l) : '—';
+    if(!l){ $('#sInfo').innerHTML = raw&&!codigo?'<div class="alert warn">Não consegui extrair a identificação deste QR. Digite o que está impresso na etiqueta.</div>':''; return; }
+    const s = ESTADO[chave(tipo, l)];
+    const locNome = localNome(db.locais.find(x=>x.id===loc));
+    const hojeRegs = todos().filter(r=>chave(tipoDe(r),r.lote)===chave(tipo,l) && r.data===t);
+    const msgs = [];
+    if(hojeRegs.length){
+      msgs.push(`<div class="alert warn">Já bipado hoje em ${hojeRegs.map(r=>'<b>'+esc(r.localNome)+'</b> às '+r.hora.slice(0,5)+(r.remoto&&r.aparelho?' ('+esc(r.aparelho)+')':'')).join(', ')}. No mesmo dia não conta como reincidência: selecione uma <b>posição diferente</b>.</div>`);
+      if(hojeRegs.some(r=>r.localId===loc || (locNome && r.localNome===locNome))) msgs.push(`<div class="alert bad">Este local já foi usado hoje para ${tipo==='Pré-lote'?'este pré-lote':'este lote'}. Selecione outro local.</div>`);
+    }
+    if(s && !s.final && s.startData < t){
+      msgs.push(`<div class="alert ${Date.now()-s.start>=86400000?'bad':'warn'}"><b>Reincidente</b>: fora da câmara fria desde ${br(s.startData)} ${hora(new Date(s.start)).slice(0,5)} (${dur(Date.now()-s.start)}).</div>`);
+    } else if(s && s.final){
+      msgs.push(`<div class="alert ok">Foi finalizado no checklist de ${br(s.final.data)}. Será registrado como <b>nova entrada</b>.</div>`);
+    } else if(!s){
+      msgs.push(`<div class="alert ok">Primeira bipagem: a contagem de tempo fora da câmara fria começa agora.</div>`);
+    }
+    $('#sInfo').innerHTML = msgs.join('');
+  };
+  $('#sLote').oninput = info; $('#sLoc').onchange = info;
+  preencher(); setTipo(tipo);
+  const fechar = () => { host.innerHTML=''; resumeCam(); };
+  $('#sCancel').onclick = fechar;
+  $('#sbg').onclick = e => { if(e.target.id==='sbg') fechar(); };
+  $('#sOk').onclick = async () => {
+    const lote = normId($('#sLote').value), locId = $('#sLoc').value;
+    const empresa = tipo==='Pré-lote' ? '' : empresaDoLote(lote);
+    if(!lote){ beep(false); toast('Informe a identificação.'); $('#sLote').focus(); return; }
+    if(!locId){ beep(false); toast('Selecione o local.'); return; }
+    const t = hoje();
+    const nomeLoc = localNome(db.locais.find(l=>l.id===locId));
+    if(todos().some(r=>chave(tipoDe(r),r.lote)===chave(tipo,lote) && r.data===t && (r.localId===locId || r.localNome===nomeLoc))){
+      beep(false); info(); toast('Local já usado hoje. Escolha outra posição.'); return;
+    }
+    const now = new Date(), loc = db.locais.find(l=>l.id===locId);
+    if(tipo==='Pré-lote' && $('#sDados')){
+      CAMPOS_PRE.forEach(([k])=>{ const v = $('#sd-'+k).value.trim(); if(v) dados[k] = v; else delete dados[k]; });
+      // aprende: o que foi lido (bruto) e o operador corrigiu passa a ser corrigido sozinho
+      if(lido && lido.bruto){
+        db.correcoesOcr = db.correcoesOcr || {};
+        CAMPOS_APRENDIZADO.forEach(k=>{ const b = lido.bruto[k], f = dados[k]; if(b && f && f !== lido.dados[k]) db.correcoesOcr[k+'|'+corrigirOcr({[k]:b})[k]] = f; });
+      }
+    }
+    const reg = { id:uid(), aparelho:quem(), ts:now.getTime(), data:dkey(now), hora:hora(now), tipo, lote, empresa, modelo:empresa, dados: tipo==='Pré-lote' ? dados : undefined, codigo, localId:locId, localNome:localNome(loc), conteudo:raw||(foto?'(foto)':'(manual)') };
+    if(foto){ try{ await fotoPut(reg.id, foto); reg.temFoto = true; }catch(e){ toast('Não foi possível salvar a foto no aparelho.'); } }
+    if(codigo) db.etiquetas['cod|'+codigo] = { lote, tipo, empresa, dados: reg.dados, em:reg.ts };
+    db.registros.push(reg); db.localAtual = locId; save(); recompute(); sincronizar();
+    beep(true);
+    mostrarUltimo(reg);
+    bipagemFinalizada(reg);
+  };
+  if(manual || foto || !$('#sLote').value) setTimeout(()=>$('#sLote').focus(), 50);
+}
+function bipagemFinalizada(r){
+  const host = $('#sheetHost');
+  const status = r.reincidente ? `<span class="pill ${r.foraMs>=86400000?'long':'re'}">Reincidente · ${dur(r.foraMs)} fora</span>`
+    : r.posDia>1 ? `<span class="pill mod">Mesmo dia · ${r.posDia}ª posição</span>` : '<span class="pill new">1ª bipagem</span>';
+  host.innerHTML = `<div class="sheet-bg ok-bg" id="okBg"><div class="okbox" role="status">
+    <div class="okicon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+    <b class="oktit">Bipagem finalizada</b>
+    <div class="lote" style="font-size:20px">${r.tipo==='Pré-lote'?'Pré-lote ':''}${esc(r.lote)}</div>
+    <div>${status}</div>
+    <div class="small">${esc(r.localNome)} · ${r.hora.slice(0,5)}</div>
+    <div class="small">Toque para continuar</div>
+  </div></div>`;
+  let feito = false;
+  const voltar = () => { if(feito) return; feito = true; host.innerHTML=''; show('bipar'); resumeCam(); };
+  $('#okBg').onclick = voltar;
+  setTimeout(voltar, 1800);
+}
+function mostrarUltimo(r){
+  const c = $('#lastCard'); c.hidden=false;
+  c.innerHTML = `<h3>Último registro</h3>${itemHTML(r,false).replace('class="item"','class="item" style="border:0;padding:0"')}
+    ${r.reincidente?`<div class="alert ${r.foraMs>=86400000?'bad':'warn'}">Reincidente: fora da câmara fria há <b>${dur(r.foraMs)}</b> · desde ${br(dkey(new Date(r.inicioTs)))} ${hora(new Date(r.inicioTs)).slice(0,5)}</div>`
+      : r.posDia>1 ? '<div class="alert ok">Mesmo dia, nova posição registrada. Não conta como reincidência.</div>'
+      : '<div class="alert ok">Primeira bipagem da sequência. Contagem de tempo iniciada.</div>'}`;
+}
+$('#btnManual').onclick = () => { if(!db.locais.length){ toast('Cadastre um local primeiro.'); show('locais'); return; } pauseCam(); abrirConfirmacao('', true); };
+
+/* ================== CÂMERA ==================
+   Leitura própria: câmera traseira + BarcodeDetector nativo (Chrome/Android) e jsQR como reserva. */
+const video = $('#video');
+const cnv = document.createElement('canvas'), cx = cnv.getContext('2d', { willReadFrequently:true });
+let stream = null, camOn = false, paused = false, detector, busy = false, lastRaw = '', lastAt = 0, torch = false;
+async function getDetector(){
+  if(detector !== undefined) return detector;
+  detector = null;
+  try{ if('BarcodeDetector' in window){ const f = await BarcodeDetector.getSupportedFormats(); if(f.includes('qr_code')) detector = new BarcodeDetector({ formats:['qr_code'] }); } }catch(e){}
+  return detector;
+}
+function jsqrRegion(src, w, h, frac, maxSide, inv){
+  if(!window.jsQR) return null;
+  const cw = w*frac, ch = h*frac, sx = (w-cw)/2, sy = (h-ch)/2, sc = Math.min(1, maxSide/Math.max(cw,ch));
+  cnv.width = Math.max(1,Math.round(cw*sc)); cnv.height = Math.max(1,Math.round(ch*sc));
+  cx.drawImage(src, sx, sy, cw, ch, 0, 0, cnv.width, cnv.height);
+  const im = cx.getImageData(0, 0, cnv.width, cnv.height);
+  const r = jsQR(im.data, im.width, im.height, { inversionAttempts: inv||'dontInvert' });
+  return r && r.data ? r.data : null;
+}
+async function decodeFrame(){
+  const d = await getDetector();
+  if(d){ try{ const r = await d.detect(video); if(r.length) return r[0].rawValue; }catch(e){} }
+  const w = video.videoWidth, h = video.videoHeight; if(!w) return null;
+  return jsqrRegion(video, w, h, 0.6, 640) || jsqrRegion(video, w, h, 1, 900);
+}
+async function tick(){
+  if(!camOn) return;
+  if(!paused && !busy && video.readyState >= 2){
+    busy = true;
+    try{ const t = await decodeFrame(); if(t && camOn && !paused) onScan(t); }catch(e){}
+    busy = false;
+  }
+  setTimeout(tick, detector ? 100 : 180);
+}
+function ajudaCamera(msg){
+  $('#camMsg').textContent = 'A câmera não abriu. Veja abaixo como resolver.';
+  $('#camHelp').hidden = false;
+  const emb = window.top !== window.self;
+  $('#camHelp').innerHTML = `<h3>Como liberar a câmera</h3>
+    ${emb?'<div class="alert bad">O app está aberto dentro de uma pré-visualização (Claude, WhatsApp, Drive ou visualizador de arquivos). Nessas telas a câmera é sempre bloqueada. Abra o link https do app direto no Chrome.</div>':''}
+    <div class="small"><b>1.</b> Abra pelo endereço https no Chrome (barra de endereço visível no topo).<br>
+    <b>2.</b> Toque no ícone à esquerda do endereço → Permissões → Câmera → Permitir. Recarregue.<br>
+    <b>3.</b> Android: Configurações → Apps → Chrome → Permissões → Câmera → Permitir.<br>
+    <b>4.</b> Feche outros apps que estejam usando a câmera.</div>
+    <div class="raw" id="diag">${esc(msg)}</div>`;
+  diagnostico().then(t=>{ const d=$('#diag'); if(d) d.textContent = msg+'\n'+t; });
+}
+async function diagnostico(){
+  const ua = navigator.userAgent;
+  const webview = /; wv\)|FBAN|FBAV|Instagram|WhatsApp|Line\//i.test(ua) || window.top!==window.self;
+  let perm = 'desconhecida';
+  try{ perm = (await navigator.permissions.query({ name:'camera' })).state; }catch(e){}
+  const permTxt = { granted:'permitida', denied:'BLOQUEADA para este site', prompt:'ainda não perguntada' }[perm] || perm;
+  return `Endereço: ${location.protocol}//${location.host||'(arquivo local)'}\n`+
+         `Navegador: ${webview?'VISUALIZADOR EMBUTIDO (não é o Chrome)':'Chrome/navegador normal'}\n`+
+         `Permissão da câmera: ${permTxt}`;
+}
+async function startCam(){
+  if(!db.locais.length){ toast('Cadastre um local primeiro.'); show('locais'); return; }
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.isSecureContext){ ajudaCamera('Câmera indisponível: a página precisa estar em https:// e aberta no navegador.'); return; }
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({ audio:false, video:{ facingMode:{ ideal:'environment' }, width:{ ideal:1280 }, height:{ ideal:720 } } });
+    video.srcObject = stream; video.hidden = false; await video.play();
+    const track = stream.getVideoTracks()[0];
+    try{ await track.applyConstraints({ advanced:[{ focusMode:'continuous' }] }); }catch(e){}
+    let caps = {}; try{ caps = track.getCapabilities ? track.getCapabilities() : {}; }catch(e){}
+    $('#btnTorch').hidden = !caps.torch;
+    camOn = true; paused = false;
+    $('#readerIdle').hidden = true; $('#aim').hidden = false; $('#camTools').hidden = false; $('#btnStop').hidden = false; $('#camHelp').hidden = true;
+    await getDetector(); tick();
+  }catch(e){
+    stopCam();
+    ajudaCamera((e && e.name ? e.name+': ' : '') + (e && e.message ? e.message : e));
+  }
+}
+function stopCam(){
+  camOn = false; torch = false;
+  if(stream){ stream.getTracks().forEach(t=>t.stop()); stream = null; }
+  video.srcObject = null; video.hidden = true;
+  $('#readerIdle').hidden = false; $('#aim').hidden = true; $('#camTools').hidden = true; $('#btnStop').hidden = true;
+}
+function pauseCam(){ paused = true; }
+function resumeCam(){ paused = false; }
+function onScan(text){
+  const now = Date.now();
+  if(text===lastRaw && now-lastAt<3000) return;
+  lastRaw = text; lastAt = now;
+  pauseCam(); beep(true);
+  abrirConfirmacao(text, false);
+}
+$('#btnStart').onclick = startCam;
+$('#btnStop').onclick = stopCam;
+$('#btnTorch').onclick = async () => {
+  try{ torch = !torch; await stream.getVideoTracks()[0].applyConstraints({ advanced:[{ torch }] }); $('#btnTorch').textContent = torch?'Lanterna ✓':'Lanterna'; }catch(e){ toast('Lanterna indisponível neste aparelho.'); }
+};
+document.addEventListener('visibilitychange', ()=>{ if(document.hidden) stopCam(); });
+
+/* ================== PRÉ-LOTE: leitura do texto da etiqueta (OCR) ==================
+   Modelo: "Pré-LOTE N. 33.058", Variedade, Categoria, Produzido, Origem, Peso, Safra, Obs.
+   O QR do pré-lote traz só um número curto (ex.: 288283), que fica vinculado ao pré-lote. */
+const normPre = s => String(s||'').toUpperCase().replace(/[.\s]/g,'');
+function lerEtiquetaPreLote(txt){
+  const t = String(txt||'').replace(/\r/g,'');
+  // A foto pode pegar o rodapé da etiqueta vizinha (Peso/Safra/Obs repetidos).
+  // Os campos do rodapé são buscados DEPOIS do cabeçalho desta etiqueta (Variedade / Pré-LOTE N.).
+  const ancora = (()=>{ const m = /variedade|pr[ée]\s*[-–]?\s*lote\s*n/i.exec(t); return m ? m.index : 0; })();
+  const campoEm = (re, txt) => { const m = re.exec(txt); return m ? m[1].trim().replace(/\s{2,}/g,' ') : ''; };
+  const campo = re => campoEm(re, t);
+  const campoDepois = re => campoEm(re, t.slice(ancora)) || campo(re);
+  let id = campo(/pr[ée]\s*[-–]?\s*lote\s*n[º°o]?\s*[.,:]?\s*([\d][\d.,\s]{0,10}\d)/i).replace(/[^\d]/g,'');
+  const dados = {
+    variedade: campo(/variedade\s*[:;]\s*([^\n]+)/i),
+    categoria: campo(/categoria\s*[:;]\s*([^\n]+)/i),
+    produzido: campo(/produzido\s*[:;]\s*([\d\/OIl ]+\s*[\d:OIl]*)/i),
+    origem:    campo(/origem\s*[:;]\s*([^\n]+)/i),
+    peso:      campoDepois(/peso\s*[:;]\s*([\d.,]+\s*k?g?)/i),
+    safra:     campoDepois(/safra\s*[:;]\s*([^\n]+)/i),
+    obs:       campoDepois(/obs\s*[:;.]\s*([^\n]+)/i)
+  };
+  const qr = campo(/\n\s*(\d{3}[.,]\d{3})\s*\n/).replace(/[^\d]/g,'');
+  const bruto = Object.assign({}, dados);
+  corrigirOcr(dados);
+  let empresa = '';
+  if(/dois\s*marcos/i.test(t)) empresa = 'Dois Marcos'; else if(/basf/i.test(t)) empresa = 'Basf';
+  return { id, dados, bruto, qr, empresa };
+}
+/* Erros típicos de OCR: 1/l/| ↔ I, 0 ↔ O, Z ↔ 2, 5 ↔ S, 8 ↔ B.
+   Compara as siglas com as tecnologias conhecidas e aplica correções aprendidas com o operador. */
+// tecnologias de soja: IPRO (Intacta), I2X (Intacta 2 Xtend), CE (Conkesta Enlist), E3 (Enlist E3), RR, Xtend
+const SIGLAS_VARIEDADE = ['IPRO','I2X','CE','E3','RR','RR2','XTD','XTEND','INTACTA','ENLIST','CONKESTA'];
+const CAMPOS_APRENDIZADO = ['variedade','categoria','origem','safra','obs'];
+const formaOcr = s => String(s).toUpperCase().replace(/[1L|!]/g,'I').replace(/0/g,'O').replace(/Z/g,'2').replace(/5/g,'S').replace(/8/g,'B').replace(/3/g,'E').replace(/[(\[{G]/g,'C');
+const paraDigitos = s => String(s).toUpperCase().replace(/[OQD]/g,'0').replace(/[IL|!]/g,'1').replace(/S/g,'5').replace(/B/g,'8').replace(/Z/g,'2');
+function corrigirVariedade(v){
+  return String(v||'').trim().split(/\s+/).filter(tk=>/[A-Za-z0-9]/.test(tk)).map((tk, i)=>{
+    const up = tk.toUpperCase();
+    // código numérico (ex.: 0720): letras parecidas com números viram números
+    if(i===0 && /^[\dOQDILS|!BZ]{3,6}$/i.test(up) && (up.match(/\d/g)||[]).length >= up.length-2) return paraDigitos(up);
+    const sig = SIGLAS_VARIEDADE.find(k => formaOcr(k) === formaOcr(up));
+    if(sig) return sig;
+    return (i>0 && up.length<=2) ? '' : up;   // pedaços curtos desconhecidos são ruído (ex.: "BO" vindo do QR)
+  }).filter(Boolean).join(' ');
+}
+// remove sujeira do OCR: aspas, =, ~, |, sublinhados e símbolos soltos
+const limparCampo = v => String(v||'').replace(/[“”"'`´=~|_^#@*{}\[\]<>«»°]+/g,' ').replace(/\s{2,}/g,' ').replace(/^[\s\-.,:;]+|[\s\-.,:;]+$/g,'').trim();
+function corrigirOcr(d){
+  Object.keys(d).forEach(k=>{ if(typeof d[k]==='string') d[k] = limparCampo(k==='categoria' ? d[k].replace(/\$/g,'S') : d[k]); });
+  if(d.safra){ d.safra = d.safra.replace(/\s*-\s*(-\s*)+/g,' - ').replace(/(\d{4})\s*\/\s*(\d{4})/, (m,a,b)=> `${a}/${(+b===+a+1)?b:(+a+1)}`).toUpperCase().replace(/\s+-\s+/g,' - '); }
+  ['origem','safra','obs'].forEach(k=>{ if(d[k]) d[k] = d[k].replace(/(\s+[A-Za-z])+$/,'').trim(); });   // letra solta no fim = ruído
+  if(d.obs) d.obs = d.obs.toUpperCase();
+  if(d.origem) d.origem = d.origem.toUpperCase();
+  if(d.variedade) d.variedade = corrigirVariedade(d.variedade);
+  if(d.categoria){ const c = d.categoria.toUpperCase().replace(/\s/g,''); const m = /^([5SC(])([1-4IL])$/.exec(c); d.categoria = m ? ((m[1]==='C'||m[1]==='(')?'C':'S') + paraDigitos(m[2]) : d.categoria.toUpperCase(); }
+  if(d.produzido) d.produzido = paraDigitos(d.produzido.replace(/[^\dOQDILS|!BZ\/: ]/gi,'')).replace(/\s+/g,' ').trim();
+  if(d.peso){ const m = /([\d.,]+)/.exec(d.peso.replace(/[oO]/g,'0')); d.peso = m ? m[1]+' kg' : d.peso; }
+  // correções aprendidas (o que o operador já corrigiu antes)
+  const ap = db.correcoesOcr || {};
+  CAMPOS_APRENDIZADO.forEach(k=>{ if(d[k] && ap[k+'|'+d[k]]) d[k] = ap[k+'|'+d[k]]; });
+  return d;
+}
+let ocrWorker = null, ocrPronto = null;
+function prepararOcr(){
+  if(!ocrPronto) ocrPronto = (async ()=>{
+    if(!window.Tesseract) await carregarScript('https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js');
+    if(!ocrWorker) ocrWorker = await Tesseract.createWorker('por');
+    return ocrWorker;
+  })().catch(e=>{ ocrPronto = null; throw e; });
+  return ocrPronto;
+}
+function carregarScript(src){ return new Promise((res,rej)=>{ const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = ()=>rej(new Error('Não carregou o leitor de texto. Verifique a internet.')); document.head.appendChild(s); }); }
+/* Desenha a foto girada (0, 90, 180, 270 graus) já em tons de cinza e com contraste */
+function canvasGirado(bmp, graus){
+  const g90 = ((graus % 360) + 360) % 360, deitado = g90===90 || g90===270;
+  const sc = Math.min(2, 1800/Math.max(bmp.width, bmp.height));
+  const w = Math.round(bmp.width*sc), h = Math.round(bmp.height*sc);
+  const c = document.createElement('canvas'); c.width = deitado ? h : w; c.height = deitado ? w : h;
+  const g = c.getContext('2d'); g.filter = 'grayscale(1) contrast(1.4)';
+  g.translate(c.width/2, c.height/2); g.rotate(g90*Math.PI/180); g.drawImage(bmp, -w/2, -h/2, w, h);
+  return c;
+}
+async function ocrTexto(canvas, psm){
+  await prepararOcr();
+  await ocrWorker.setParameters({ tessedit_pageseg_mode: String(psm) });
+  const { data } = await ocrWorker.recognize(canvas);
+  return data.text || '';
+}
+const camposFaltando = l => (l.id?0:3) + ['variedade','peso','safra'].filter(k=>!l.dados[k]).length;
+function juntarLeituras(a, b){
+  const r = { id:a.id||b.id, qr:a.qr||b.qr, empresa:a.empresa||b.empresa, dados:{}, bruto:{} };
+  Object.keys(Object.assign({}, a.dados, b.dados)).forEach(k=>{ r.dados[k] = a.dados[k] || b.dados[k] || ''; r.bruto[k] = (a.dados[k] ? a.bruto[k] : b.bruto[k]) || ''; });
+  return r;
+}
+/* Lê a etiqueta do pré-lote. 'giro' vem da posição do QR na foto (null = desconhecido). */
+async function lerPreLoteDaFoto(bmp, giro){
+  const tentativas = giro!=null ? [giro, giro+180] : [0, 270, 90, 180];
+  let melhor = null;
+  for(const g of tentativas){
+    const cv = canvasGirado(bmp, g);
+    let l = lerEtiquetaPreLote(await ocrTexto(cv, 6));          // bloco único: melhor para a etiqueta inteira
+    if(camposFaltando(l)) l = juntarLeituras(l, lerEtiquetaPreLote(await ocrTexto(cv, 3)));   // automático
+    if(!melhor || camposFaltando(l) < camposFaltando(melhor)) melhor = l;
+    if(l.id && !camposFaltando(l)) break;
+    if(l.id && giro!=null) break;
+  }
+  return melhor;
+}
+function aguarde(msg){
+  const host = $('#sheetHost');
+  host.innerHTML = msg ? `<div class="sheet-bg"><div class="sheet" style="align-items:center;text-align:center;padding-block:32px"><div class="spinner" aria-hidden="true"></div><b>${esc(msg)}</b>${ocrWorker?'':'<div class="small">Na primeira vez leva alguns segundos a mais para baixar o leitor.</div>'}</div></div>` : '';
+}
+/* Lê o QR da foto e devolve também quanto a foto precisa girar para a etiqueta ficar em pé */
+async function lerQRdaImagem(bmp){
+  let texto = '', giro = null;
+  const angulo = (a, b) => Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
+  if(window.jsQR){
+    for(const side of [1000, 1600, 700]){
+      const sc = Math.min(1, side/Math.max(bmp.width, bmp.height));
+      cnv.width = Math.round(bmp.width*sc); cnv.height = Math.round(bmp.height*sc);
+      cx.drawImage(bmp, 0, 0, cnv.width, cnv.height);
+      const im = cx.getImageData(0, 0, cnv.width, cnv.height);
+      const r = jsQR(im.data, im.width, im.height, { inversionAttempts:'attemptBoth' });
+      if(r && r.data){ texto = r.data; giro = -Math.round(angulo(r.location.topLeftCorner, r.location.topRightCorner)/90)*90; break; }
+    }
+  }
+  if(!texto){
+    const d = await getDetector();
+    if(d){ try{ const r = await d.detect(bmp); if(r.length){ texto = r[0].rawValue; const p = r[0].cornerPoints; if(p && p.length===4) giro = -Math.round(angulo(p[0], p[1])/90)*90; } }catch(_){} }
+  }
+  if(!texto) for(const frac of [0.6, 0.4]) for(const side of [1000, 1600]){ const t = jsqrRegion(bmp, bmp.width, bmp.height, frac, side, 'attemptBoth'); if(t){ texto = t; break; } }
+  return { texto, giro };
+}
+$('#fotoPre').onchange = async e => {
+  const f = e.target.files[0]; e.target.value=''; if(!f) return;
+  if(!db.locais.length){ toast('Cadastre um local primeiro.'); show('locais'); return; }
+  pauseCam();
+  aguarde('Lendo a etiqueta do pré-lote…');
+  let bmp, foto = null, qr = '', lido = { id:'', dados:{}, qr:'', empresa:'' }, erro = '';
+  try{
+    try{ bmp = await createImageBitmap(f, { imageOrientation:'from-image' }); }catch(_){ bmp = await createImageBitmap(f); }
+    foto = await comprimirFoto(bmp);
+    const q = await lerQRdaImagem(bmp); qr = q.texto;
+    try{ lido = await lerPreLoteDaFoto(bmp, q.giro); }catch(err){ erro = err.message || String(err); }
+  }catch(err){ erro = 'Não foi possível abrir a foto.'; }
+  aguarde('');
+  if(!foto){ beep(false); toast(erro); resumeCam(); return; }
+  const codigo = (qr && /^\d{1,10}$/.test(qr.trim())) ? qr.trim() : (lido.qr || '');
+  if(!lido.id && codigo){ const v = vinculoCodigo(codigo); if(v) lido.id = v.lote; }
+  abrirConfirmacao(codigo, false, { tipo:'Pré-lote', foto, lido, erroOcr: erro });
+};
+
+/* Aviso quando o app está aberto num local onde a câmera nunca funciona */
+(function avisoContexto(){
+  const b = $('#ctxBanner');
+  if(window.top !== window.self) { b.hidden=false; b.textContent = 'Você está vendo o app dentro de uma pré-visualização. A câmera só funciona com o link https aberto direto no Chrome.'; }
+  else if(!window.isSecureContext) { b.hidden=false; b.textContent = 'Este endereço não é https. Hospede o arquivo (ex.: Netlify) e abra pelo link https no Chrome para usar a câmera.'; }
+})();
+
+/* ================== EXPORTAÇÃO EXCEL ================== */
+const D = x => x || '';
+function exportar(de, ate){
+  if(!window.XLSX){ toast('Biblioteca do Excel não carregou. Verifique a internet.'); return; }
+  recompute();
+  const regs = todos().filter(r=>(!de||r.data>=de) && (!ate||r.data<=ate)).sort((a,b)=>a.ts-b.ts);
+  if(!regs.length){ toast('Não há bipagens no período escolhido.'); return; }
+  const bip = regs.map(r=>{ const d = r.dados||{}; return {
+    'Data': br(r.data), 'Hora': r.hora, 'Tipo': r.tipo, 'Lote / Pré-lote': r.lote, 'Empresa': r.empresa, 'Local': r.localNome, 'Usuário': D(r.aparelho),
+    'Reincidente': r.reincidente?'Sim':'Não', 'Posição no dia': r.posDia, 'Dia na sequência': r.diaSeq,
+    'Início da sequência': br(dkey(new Date(r.inicioTs)))+' '+hora(new Date(r.inicioTs)),
+    'Tempo fora da câmara fria': dur(r.foraMs), 'Tempo fora (horas)': horasDec(r.foraMs),
+    'Código QR': D(r.codigo), 'Variedade': D(d.variedade), 'Categoria': D(d.categoria), 'Peso': D(d.peso), 'Safra': D(d.safra), 'Origem': D(d.origem), 'Produzido': D(d.produzido), 'Obs': D(d.obs),
+    'Foto': r.fotoUrl || (r.temFoto ? 'No aparelho' : '')
+  }; });
+  const idsPeriodo = new Set(regs.map(r=>r.id));
+  const seqs = SEQ.filter(s=>s.regs.some(r=>idsPeriodo.has(r.id)));
+  const res = seqs.map(s=>({
+    'Tipo': s.tipo, 'Lote / Pré-lote': s.lote, 'Empresa': s.empresa,
+    'Situação': s.final ? 'Finalizado' : 'Ativo', 'Finalizado em (checklist)': s.final ? br(s.final.data) : '',
+    'Primeira bipagem': br(s.startData)+' '+hora(new Date(s.start)), 'Última bipagem': br(s.last.data)+' '+s.last.hora,
+    'Dias com bipagem': s.dias.size, 'Bipagens': s.n, 'Último local': s.last.localNome, 'Locais': [...s.locais].join(' | '),
+    'Tempo fora (até a última bipagem)': dur(s.last.ts-s.start), 'Tempo fora (horas)': horasDec(s.last.ts-s.start)
+  }));
+  const pend = ativosPendentes().map(s=>({ 'Tipo':s.tipo, 'Lote / Pré-lote':s.lote, 'Empresa':s.empresa, 'Início':br(s.startData), 'Última bipagem':br(s.last.data)+' '+s.last.hora, 'Último local':s.last.localNome, 'Situação': 'Ainda não encontrado hoje' }));
+  const cks = Object.entries(CK).sort().map(([d,c])=>{ const fin = SEQ.filter(s=>s.final && s.final.data===d); return { 'Data':br(d), 'Concluído às':hora(new Date(c.ts)), 'Aparelho':D(c.aparelho), 'Finalizados':fin.length, 'Lotes finalizados':fin.map(s=>s.lote).join(', ') }; });
+  const loc = db.locais.map(l=>({ 'Armazém / antecâmara':l.armazem, 'Posição':l.posicao }));
+  const wb = XLSX.utils.book_new();
+  const add = (rows, nome, cols) => { const ws = XLSX.utils.json_to_sheet(rows.length?rows:[{'Sem dados':''}]); if(cols) ws['!cols']=cols.map(w=>({wch:w})); XLSX.utils.book_append_sheet(wb, ws, nome); };
+  add(bip, 'Bipagens', [11,9,9,16,12,26,16,11,9,9,20,14,9,10,12,9,10,20,18,20,14,12]);
+  add(res, 'Lotes', [9,16,12,11,14,20,20,9,9,26,40,16,9]);
+  add(pend, 'Checklist de hoje', [9,16,12,11,20,26,24]);
+  add(cks, 'Checklists', [11,11,18,10,50]);
+  add(loc, 'Locais', [26,26]);
+  const nome = 'monitoramento_antecamara_' + (de===ate ? de : (de||'inicio')+'_a_'+(ate||hoje())) + '.xlsx';
+  try{ XLSX.writeFile(wb, nome); toast('Planilha gerada: '+nome); }catch(e){ toast('Falha ao gerar a planilha: '+e.message); }
+}
+$('#btnExport').onclick = () => { const de=$('#expDe').value, ate=$('#expAte').value; if(de&&ate&&de>ate){ toast('A data inicial é maior que a final.'); return; } exportar(de, ate); };
+$('#btnExportAll').onclick = () => exportar('', '');
+
+/* ================== BACKUP ================== */
+$('#btnBackup').onclick = () => {
+  const blob = new Blob([JSON.stringify(db,null,1)], {type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'backup_antecamara_'+hoje()+'.json';
+  document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();}, 500);
+};
+$('#fileRestore').onchange = e => {
+  const f = e.target.files[0]; if(!f) return;
+  const rd = new FileReader();
+  rd.onload = () => { try{ const d = JSON.parse(rd.result); if(!Array.isArray(d.registros)||!Array.isArray(d.locais)) throw new Error('arquivo sem bipagens/locais');
+      if(!confirm(`Restaurar ${d.registros.length} bipagens e ${d.locais.length} locais? Os dados atuais serão substituídos.`)) return;
+      db = Object.assign({ modelos:DEFAULT_MODELOS, etiquetas:{}, planilha:{url:'',aparelho:''}, filaExcluir:[], checklists:{}, filaChecklist:[] }, d); save(); render(); toast('Backup restaurado'); }
+    catch(err){ toast('Backup inválido: '+err.message); } };
+  rd.readAsText(f); e.target.value='';
+};
+$('#btnWipe').onclick = () => {
+  if(!confirm('Apagar TODAS as bipagens deste aparelho? Exporte antes. Os locais são mantidos. O que já está na Planilha Google não é apagado e volta na próxima atualização.')) return;
+  db.registros = []; db.checklists = {}; db.eventosCk = []; db.filaChecklist = []; fotoClear(); REMOTO = { registros:[], eventos:[], em:0 }; save(); render(); toast('Bipagens apagadas deste aparelho');
+};
+
+/* ================== PLANILHA GOOGLE (banco central multiaparelhos) ==================
+   Cada aparelho envia o que fez (bipagens, exclusões, checklists, locais) e baixa o que os outros fizeram.
+   As regras (reincidência, posição no dia, checklist) são calculadas sobre a união. */
+let syncando = null, syncErro = '', syncUltimo = 0, syncDeNovo = false, syncSeguinte = null;
+const DIAS_HISTORICO = 60;
+function pendentesEnvio(){ return db.registros.filter(r=>!r.enviado); }
+function filaTotal(){ return pendentesEnvio().length + db.filaExcluir.length + db.filaChecklist.length + db.filaLocais.length; }
+function payloadRegistro(r){
+  return {
+    id:r.id, ts:r.ts, data:br(r.data), hora:r.hora, lote:r.lote, modelo:r.empresa||'', empresa:r.empresa||'', tipo:r.tipo, local:r.localNome, localId:r.localId, dados:r.dados||{},
+    reincidente:r.reincidente?'Sim':'Não', diaSeq:r.diaSeq,
+    inicio:br(dkey(new Date(r.inicioTs)))+' '+hora(new Date(r.inicioTs)),
+    tempoFora:dur(r.foraMs), horasFora:horasDec(r.foraMs),
+    codigo:r.codigo||'', aparelho:r.aparelho||quem()
+  };
+}
+async function lerResposta(res){
+  const txt = await res.text();
+  let j; try{ j = JSON.parse(txt); }catch(e){ throw new Error('A planilha não respondeu como esperado. Confira o endereço e se o acesso está como "Qualquer pessoa".'); }
+  if(!j.ok) throw new Error(j.erro || 'Erro na planilha');
+  return j;
+}
+async function postPlanilha(body){
+  const j = await supaPost(body); if(!j.ok) throw new Error(j.erro || 'Erro no banco'); return j;
+}
+const tsDe = (data, hr) => { const m = /(\d{2})\/(\d{2})\/(\d{4})/.exec(data||''); if(!m) return 0; return new Date(`${m[3]}-${m[2]}-${m[1]}T${(hr||'00:00:00').slice(0,8)}`).getTime(); };
+async function enviar(){
+  const fila = pendentesEnvio(), exc = db.filaExcluir.slice(), cks = db.filaChecklist.slice(), locs = db.filaLocais.slice();
+  if(!fila.length && !exc.length && !cks.length && !locs.length) return;
+  recompute();
+  let i = 0, primeira = true;
+  while(i < fila.length || primeira){
+    const grupo = []; let peso = 0;
+    while(i < fila.length && grupo.length < 50 && peso < 4){
+      const r = fila[i++], pl = payloadRegistro(r);
+      if(r.temFoto && !r.fotoUrl){ const f = await fotoGet(r.id); if(f){ try{ pl.fotoUrl = await supaFoto(r.id, f); }catch(e){} peso++; } }
+      grupo.push(pl);
+    }
+    const j = await postPlanilha({ usuario:quem(), registros:grupo, excluir: primeira?exc:[], checklists: primeira?cks:[], locais: primeira?locs:[] });
+    const ok = new Set(j.recebidos||[]), urls = j.fotos||{};
+    db.registros.forEach(r=>{ if(ok.has(r.id)) r.enviado = true; if(urls[r.id]) r.fotoUrl = urls[r.id]; });
+    if((j.repetidas||[]).length) removerLocais(j.repetidas, 'repetida');
+    if(primeira){
+      const ex = new Set(j.excluidos||[]); db.filaExcluir = db.filaExcluir.filter(id=>!ex.has(id));
+      const ck = new Set(j.checklists||[]); db.filaChecklist = db.filaChecklist.filter(c=>!ck.has(c.id));
+      const lc = new Set(j.locais||[]); db.filaLocais = db.filaLocais.filter(l=>!lc.has(l.id+'|'+l.situacao));
+    }
+    primeira = false; save();
+  }
+}
+/* Remove deste aparelho bipagens que a planilha marcou como excluídas (por outro usuário ou repetida offline) */
+function removerLocais(ids, motivo){
+  const set = new Set(ids), sai = db.registros.filter(r=>set.has(r.id));
+  if(!sai.length) return;
+  sai.forEach(r=>{ if(r.temFoto) fotoDel(r.id); });
+  db.registros = db.registros.filter(r=>!set.has(r.id));
+  db.filaExcluir = db.filaExcluir.filter(id=>!set.has(id));
+  save();
+  if(motivo==='repetida') toast(`Bipagem repetida (feita sem internet) removida: ${sai.map(r=>r.lote).join(', ')}. Mantida a mais antiga.`);
+}
+/* Dia do checklist sempre no formato AAAA-MM-DD. A planilha às vezes converte a coluna "Dia" em data;
+   nesse caso (ou se vier vazio/estranho) o dia é tirado do horário do evento. */
+function diaValido(d, ts){ return /^\d{4}-\d{2}-\d{2}$/.test(String(d||'')) ? String(d) : dkey(new Date(Number(ts))); }
+/* O administrador zerou os dados: apaga deste aparelho tudo o que é anterior ao "zerar" */
+function aplicarReset(reset, locaisTambem){
+  const antes = db.registros.length;
+  db.registros.filter(r=>r.ts < reset && r.temFoto).forEach(r=>fotoDel(r.id));
+  db.registros = db.registros.filter(r=>r.ts >= reset);
+  db.eventosCk = (db.eventosCk||[]).filter(e=>e.ts >= reset);
+  db.filaChecklist = db.filaChecklist.filter(c=>(c.ts||0) >= reset);
+  db.filaExcluir = [];
+  db.checklists = {};
+  Object.keys(db.etiquetas||{}).forEach(k=>{ if((db.etiquetas[k].em||0) < reset) delete db.etiquetas[k]; });
+  if(locaisTambem){ db.locais = []; db.localAtual = ''; db.filaLocais = db.filaLocais.filter(l=>(l.ts||0) >= reset); }
+  REMOTO = { registros:[], eventos:[], em:0 };
+  const primeiraVez = db.resetVisto === undefined;
+  db.resetVisto = reset; save();
+  if(!primeiraVez || antes) toast('O administrador zerou os dados de teste. O app foi limpo.');
+}
+async function baixar(){
+  const desde = Date.now() - DIAS_HISTORICO*86400000;
+  const j = await supaGet({ acao:'dados', desde }); if(!j.ok) throw new Error(j.erro || 'Erro no banco');
+  if(j.reset && j.reset > (db.resetVisto||0)) aplicarReset(j.reset, j.resetLocais);
+  // bipagens excluídas na planilha (por qualquer aparelho) saem também deste aparelho
+  const excl = (j.registros||[]).filter(r=>String(r.situacao||'').indexOf('Excluída')===0);
+  removerLocais(excl.filter(r=>!/repetida/i.test(r.situacao)).map(r=>r.id), 'excluida');
+  removerLocais(excl.filter(r=>/repetida/i.test(r.situacao)).map(r=>r.id), 'repetida');
+  const meus = new Set(db.registros.map(r=>r.id));
+  REMOTO = {
+    em: Date.now(),
+    registros: (j.registros||[]).filter(r=>String(r.situacao||'').indexOf('Excluída')!==0 && !meus.has(r.id)).map(r=>{
+      const ts = Number(r.ts) || tsDe(r.data, r.hora), d = new Date(ts);
+      return { id:r.id, ts, data:dkey(d), hora:r.hora || hora(d), tipo:r.tipo||'Lote', lote:String(r.lote||'').toUpperCase(), empresa:r.empresa||'',
+        localNome:r.local||'', localId:r.localId||'', codigo:r.codigo||'', dados:r.dados||undefined, fotoUrl:r.fotoUrl||'', aparelho:r.aparelho||'', remoto:true };
+    }).filter(r=>r.ts && r.lote),
+    eventos: (j.eventos||[]).filter(e=>e.id && Number(e.ts)).map(e=>({ id:e.id, acao:e.acao, data:diaValido(e.data, e.ts), ts:Number(e.ts), aparelho:e.aparelho||'' }))
+  };
+  // locais compartilhados (alterações pendentes deste aparelho têm prioridade)
+  const pend = new Set(db.filaLocais.map(l=>l.id));
+  (j.locais||[]).forEach(l=>{
+    if(pend.has(l.id)) return;
+    const k = db.locais.findIndex(x=>x.id===l.id);
+    if(l.situacao==='Removido'){ if(k>=0) db.locais.splice(k,1); if(db.localAtual===l.id) db.localAtual=''; }
+    else if(k<0) db.locais.push({ id:l.id, armazem:l.armazem||'', posicao:l.posicao||'' });
+    else { db.locais[k].armazem = l.armazem||''; db.locais[k].posicao = l.posicao||''; }
+  });
+  save();
+  try{ await fotoPut('_remoto', REMOTO); }catch(e){}
+}
+function sincronizar(){
+  if(!db.planilha.url){ renderSync(); return Promise.resolve(); }
+  if(!navigator.onLine){ renderSync(); return Promise.resolve(); }
+  // se já está sincronizando, agenda mais uma rodada logo depois (para não esperar 1 minuto)
+  if(syncando){ syncDeNovo = true; return syncando.then(()=>syncSeguinte || undefined); }
+  syncando = (async ()=>{
+    renderSync();
+    do{
+      syncDeNovo = false;
+      try{ await enviar(); await baixar(); syncErro = ''; syncUltimo = Date.now(); }
+      catch(e){ syncErro = e.message || String(e); break; }
+    } while(syncDeNovo);
+    syncando = null; renderSync();
+    if(SESSAO && !document.querySelector('.sheet-bg')) render();
+  })();
+  const atual = syncando; syncSeguinte = atual;
+  return atual;
+}
+function renderSync(){
+  const b = $('#syncBadge'), info = $('#syncInfo');
+  const n = filaTotal();
+  if(!db.planilha.url){ b.hidden = true; if(info) info.textContent = 'Planilha não configurada. Sem ela, o app funciona só com as bipagens deste aparelho.'; return; }
+  b.hidden = false;
+  if(syncando){ b.className='syncbadge'; b.textContent='Sincronizando…'; }
+  else if(syncErro){ b.className='syncbadge err'; b.textContent='Planilha: erro'; }
+  else if(n){ b.className='syncbadge pend'; b.textContent=n+' na fila'; }
+  else { b.className='syncbadge ok'; b.textContent='Sincronizado ✓'; }
+  if(info){
+    const env = db.registros.filter(r=>r.enviado).length;
+    info.textContent = `Deste aparelho: ${env} enviadas · Na fila: ${n}\nDe outros aparelhos: ${REMOTO.registros.length} bipagens (últimos ${DIAS_HISTORICO} dias)` +
+      (syncUltimo ? `\nÚltima sincronização: ${hora(new Date(syncUltimo))}` : '') +
+      (!navigator.onLine ? '\nSem internet: os envios serão feitos quando a conexão voltar.' : '') +
+      (syncErro ? `\nErro: ${syncErro}` : '');
+  }
+}
+$('#syncBadge').onclick = () => show('ajustes');
+$('#btnCfgSave').onclick = async () => {
+  const url = $('#cfgUrl').value.trim();
+  if(url && url !== SUPA_URL){ toast('Versão de teste: o endereço do banco é fixo (Supabase).'); $('#cfgUrl').value = SUPA_URL; return; }
+  db.planilha.url = url; db.planilha.desligada = !url; save();
+  if(!url){ REMOTO = { registros:[], eventos:[], em:0 }; render(); renderSync(); toast('Integração desligada'); return; }
+  $('#syncInfo').textContent = 'Testando conexão…';
+  try{ await postPlanilha({ registros:[], excluir:[] }); syncErro=''; toast('Planilha conectada');
+       db.locais.forEach(l=>{ if(!db.filaLocais.some(x=>x.id===l.id)) db.filaLocais.push({ ...l, situacao:'Ativo' }); }); save();
+       sincronizar(); }
+  catch(e){ syncErro = e.message; renderSync(); toast('Não conectou. Veja o erro abaixo.'); }
+};
+$('#btnSyncAll').onclick = () => {
+  if(!db.planilha.url){ toast('Configure o endereço da planilha primeiro.'); return; }
+  db.registros.forEach(r=>r.enviado=false); save();   // a planilha ignora as que já existem
+  toast('Enviando histórico…'); sincronizar();
+};
+window.addEventListener('online', sincronizar);
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) sincronizar(); });
+setInterval(sincronizar, 60000);
+const _renderAjustes = renderAjustes;
+renderAjustes = function(){ _renderAjustes(); if(document.activeElement!==$('#cfgUrl')) $('#cfgUrl').value = db.planilha.url||''; renderSync(); };
+
+/* ================== LOGIN E USUÁRIOS ==================
+   Usuários ficam na planilha (senha guardada como hash). O login confere na planilha quando há internet.
+   Sem internet, vale o último login feito neste aparelho (hash guardado aqui). A sessão fica só na memória:
+   ao fechar/recarregar o app, ou após 10 min em segundo plano, é preciso entrar de novo. */
+const hexDe = buf => [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
+async function hashSenha(sal, senha){ return hexDe(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(sal+':'+senha))); }
+const normUsr = u => String(u||'').trim().toLowerCase();
+let modoLogin = 'entrar';
+function msgLogin(t, tipo){ $('#lgMsg').innerHTML = t ? `<div class="alert ${tipo||'bad'}">${esc(t)}</div>` : ''; }
+function modoPrimeiroAcesso(){
+  modoLogin = 'admin';
+  $('#lgTit').textContent = 'Primeiro acesso';
+  $('#lgSub').textContent = 'Ainda não existe administrador. Crie agora o seu usuário de administrador: ele será usado para cadastrar os demais usuários.';
+  $('#lgNomeBox').hidden = false; $('#lgSenha2Box').hidden = false; $('#lgBtn').textContent = 'Criar administrador';
+}
+async function iniciarLogin(){
+  $('#loginScr').hidden = false; SESSAO = null; renderUsuario();
+  setTimeout(()=>{ try{ $('#lgUsuario').value = db.ultimoUsuario||''; ($('#lgUsuario').value ? $('#lgSenha') : $('#lgUsuario')).focus(); }catch(e){} }, 50);
+  if(db.planilha.url && navigator.onLine && !Object.keys(db.credenciais||{}).length){
+    try{ const j = await postPlanilha({ acao:'statusUsuarios' }); if(!j.temAdmin) modoPrimeiroAcesso(); }catch(e){}
+  }
+}
+function entrou(u){
+  SESSAO = u; db.ultimoUsuario = u.usuario; save();
+  $('#loginScr').hidden = true; $('#lgSenha').value = ''; $('#lgSenha2').value = ''; msgLogin('');
+  renderUsuario(); render(); sincronizar();
+  toast('Olá, '+u.nome.split(' ')[0]+'!');
+}
+$('#loginForm').onsubmit = async e => {
+  e.preventDefault();
+  const usuario = normUsr($('#lgUsuario').value), senha = $('#lgSenha').value;
+  if(!usuario || !senha){ msgLogin('Informe usuário e senha.'); return; }
+  const btn = $('#lgBtn'); btn.disabled = true; btn.textContent = 'Aguarde…';
+  try{
+    if(modoLogin==='admin'){
+      if(senha !== $('#lgSenha2').value){ msgLogin('As senhas não conferem.'); return; }
+      if(senha.length < 4){ msgLogin('A senha precisa ter pelo menos 4 caracteres.'); return; }
+      await postPlanilha({ acao:'criarAdmin', usuario, senha, nome: $('#lgNome').value.trim() || usuario });
+      modoLogin = 'entrar'; $('#lgNomeBox').hidden = true; $('#lgSenha2Box').hidden = true;
+      $('#lgTit').textContent = 'Monitor de Antecâmara'; $('#lgSub').textContent = 'Entre com o seu usuário e senha.';
+    }
+    let j = null;
+    if(db.planilha.url && navigator.onLine){
+      try{ j = await postPlanilha({ acao:'login', usuario, senha, aparelho: navigator.userAgent.slice(0,80) }); }
+      catch(err){ if(/inválid|negado/i.test(err.message)){ msgLogin(err.message); return; } }
+    }
+    if(j){
+      db.credenciais = db.credenciais || {};
+      db.credenciais[usuario] = { usuario, nome:j.usuario.nome, perfil:j.usuario.perfil, sal:j.sal, hash:j.hash, em:Date.now() };
+      entrou({ usuario, nome:j.usuario.nome, perfil:j.usuario.perfil }); return;
+    }
+    // sem internet: confere com o último login feito neste aparelho
+    const c = (db.credenciais||{})[usuario];
+    if(c && await hashSenha(c.sal, senha) === c.hash){ entrou({ usuario, nome:c.nome, perfil:c.perfil, offline:true }); toast('Entrou sem internet (último acesso neste aparelho).'); return; }
+    msgLogin(c ? 'Usuário ou senha inválidos.' : 'Sem internet. Este usuário ainda não entrou neste aparelho: conecte-se à internet para o primeiro acesso.');
+  }catch(err){ msgLogin(err.message || String(err)); }
+  finally{ btn.disabled = false; btn.textContent = modoLogin==='admin' ? 'Criar administrador' : 'Entrar'; }
+};
+function renderUsuario(){
+  const c = $('#userChip');
+  if(!SESSAO){ c.hidden = true; return; }
+  c.hidden = false; c.textContent = SESSAO.nome.split(' ')[0] + ' ▾'; c.title = 'Usuário: '+SESSAO.nome+' (tocar para sair)';
+}
+function sair(){ stopCam(); $('#sheetHost').innerHTML=''; iniciarLogin(); }
+$('#userChip').onclick = () => {
+  const host = $('#sheetHost');
+  host.innerHTML = `<div class="sheet-bg" id="uBg"><div class="sheet">
+    <h2>${esc(SESSAO.nome)}</h2><div class="small">Usuário: <b>${esc(SESSAO.usuario)}</b> · ${esc(SESSAO.perfil)}${SESSAO.offline?' · entrou sem internet':''}</div>
+    <div class="row"><button class="btn ghost" id="uFechar">Fechar</button><button class="btn danger" id="uSair">Sair</button></div></div></div>`;
+  $('#uFechar').onclick = () => host.innerHTML=''; $('#uBg').onclick = e => { if(e.target.id==='uBg') host.innerHTML=''; };
+  $('#uSair').onclick = sair;
+};
+// bloqueia após 10 min com o app em segundo plano (tirar foto do pré-lote não chega a isso)
+let escondidoEm = 0;
+document.addEventListener('visibilitychange', ()=>{
+  if(document.hidden) escondidoEm = Date.now();
+  else if(SESSAO && escondidoEm && Date.now()-escondidoEm > 10*60000){ toast('Sessão encerrada por inatividade. Entre novamente.'); sair(); }
+});
+
+/* Área do administrador: exige usuário e senha de administrador a cada acesso */
+let ADM = null;
+async function chamarUsuarios(extra){ return postPlanilha(Object.assign({ acao:'usuarios', admin:ADM }, extra||{})); }
+function telaUsuarios(lista){
+  const host = $('#sheetHost');
+  host.innerHTML = `<div class="sheet-bg" id="aBg"><div class="sheet">
+    <h2>Usuários</h2>
+    <div class="card" style="background:var(--bg)"><h3>Cadastrar usuário</h3>
+      <label class="f">Nome<input type="text" id="nuNome" placeholder="Ex.: João Silva"></label>
+      <div class="row"><label class="f">Usuário<input type="text" id="nuUsuario" autocapitalize="none" spellcheck="false" placeholder="joao.silva"></label>
+      <label class="f">Senha<input type="text" id="nuSenha" autocomplete="off" placeholder="mín. 4 caracteres"></label></div>
+      <label class="f">Perfil<select id="nuPerfil"><option>Operador</option><option>Administrador</option></select></label>
+      <button class="btn" id="nuSalvar">Cadastrar</button></div>
+    <div>${lista.map(u=>`<div class="urow"><div><b>${esc(u.nome)}</b> <span class="pill ${u.situacao==='Ativo'?'new':'fin'}">${esc(u.situacao)}</span>${u.perfil==='Administrador'?' <span class="pill mod">Admin</span>':''}<div class="small">${esc(u.usuario)} · cadastrado por ${esc(u.criadoPor)} em ${esc(u.criadoEm)}</div></div><div></div>
+      <div class="actions"><button class="btn ghost sm" data-senha="${esc(u.usuario)}">Trocar senha</button><button class="btn ghost sm" data-sit="${esc(u.usuario)}">${u.situacao==='Ativo'?'Desativar':'Reativar'}</button></div></div>`).join('')}</div>
+    <div id="aMsg"></div>
+    <div class="card" style="background:var(--bad-bg);border-color:var(--bad)"><h3 style="color:var(--bad)">Zerar dados de teste</h3>
+      <div class="small" style="color:var(--ink)">Apaga da planilha e de <b>todos os celulares</b>: bipagens, checklists, finalizados e repetidas. Os <b>usuários continuam</b>. Não dá para desfazer.</div>
+      <label class="small" style="display:flex;gap:8px;align-items:center;color:var(--ink)"><input type="checkbox" id="zLocais" style="width:20px;height:20px"> Apagar também os locais cadastrados</label>
+      <label class="f">Para confirmar, digite ZERAR<input type="text" id="zConf" autocomplete="off" autocapitalize="characters"></label>
+      <button class="btn danger" id="zBtn">Zerar dados</button></div>
+    <button class="btn ghost" id="aFechar">Fechar</button>
+  </div></div>`;
+  $('#aFechar').onclick = () => { ADM = null; host.innerHTML=''; };
+  $('#zBtn').onclick = async () => {
+    if($('#zConf').value.trim().toUpperCase() !== 'ZERAR'){ toast('Digite ZERAR para confirmar.'); $('#zConf').focus(); return; }
+    $('#zBtn').disabled = true; $('#zBtn').textContent = 'Zerando…';
+    try{
+      const j = await chamarUsuarios({ op:'zerar', locais: $('#zLocais').checked });
+      if(!j.apagadas) throw new Error('A planilha ainda está com o script antigo e NÃO apagou nada. Atualize o script da planilha para a versão 5 (Implantar → Gerenciar implantações → ✏️ → Nova versão) e tente de novo.');
+      const tot = Object.values(j.apagadas||{}).reduce((a,b)=>a+b,0);
+      ADM = null; host.innerHTML = '';
+      toast(`Dados zerados: ${tot} linha(s) apagada(s) da planilha.`);
+      await sincronizar(); render();
+    }catch(err){ $('#zBtn').disabled = false; $('#zBtn').textContent = 'Zerar dados'; $('#aMsg').innerHTML = `<div class="alert bad">${esc(err.message)}</div>`; }
+  };
+  const exec = async (extra, ok) => { $('#aMsg').innerHTML = '<div class="small">Salvando…</div>';
+    try{ const j = await chamarUsuarios(extra); telaUsuarios(j.usuarios); toast(ok); }catch(err){ $('#aMsg').innerHTML = `<div class="alert bad">${esc(err.message)}</div>`; } };
+  $('#nuSalvar').onclick = () => exec({ op:'salvar', usuario:normUsr($('#nuUsuario').value), nome:$('#nuNome').value.trim(), senha:$('#nuSenha').value, perfil:$('#nuPerfil').value }, 'Usuário cadastrado');
+  host.querySelectorAll('[data-sit]').forEach(b=>b.onclick = () => exec({ op:'situacao', usuario:b.dataset.sit }, 'Situação alterada'));
+  host.querySelectorAll('[data-senha]').forEach(b=>b.onclick = () => {
+    const box = document.createElement('div'); box.className = 'row'; box.style.gridColumn = '1/-1';
+    box.innerHTML = `<label class="f">Nova senha de ${esc(b.dataset.senha)}<input type="text" autocomplete="off"></label><button class="btn sm" style="flex:0 0 auto;align-self:end">Salvar</button>`;
+    b.closest('.urow').appendChild(box); box.querySelector('input').focus();
+    box.querySelector('button').onclick = () => exec({ op:'senha', usuario:b.dataset.senha, senha:box.querySelector('input').value }, 'Senha alterada');
+  });
+}
+$('#btnUsuarios').onclick = () => {
+  if(!db.planilha.url || !navigator.onLine){ toast('É preciso internet para gerenciar usuários.'); return; }
+  const host = $('#sheetHost');
+  host.innerHTML = `<div class="sheet-bg" id="aBg"><form class="sheet" id="aForm">
+    <h2>Acesso do administrador</h2><div class="small">Para gerenciar usuários, confirme seu usuário e senha de administrador.</div>
+    <label class="f">Usuário<input type="text" id="aUsr" autocapitalize="none" spellcheck="false" autocomplete="username"></label>
+    <label class="f">Senha<input type="password" id="aSenha" autocomplete="current-password"></label>
+    <div id="aMsg"></div>
+    <div class="row"><button type="button" class="btn ghost" id="aCancel">Cancelar</button><button class="btn" type="submit">Entrar</button></div></form></div>`;
+  setTimeout(()=>$('#aUsr').focus(), 50);
+  $('#aCancel').onclick = () => host.innerHTML='';
+  $('#aForm').onsubmit = async e => { e.preventDefault();
+    ADM = { usuario:normUsr($('#aUsr').value), senha:$('#aSenha').value };
+    try{ const j = await chamarUsuarios({ op:'listar' }); telaUsuarios(j.usuarios); }
+    catch(err){ ADM = null; $('#aMsg').innerHTML = `<div class="alert bad">${esc(err.message)}</div>`; } };
+};
+
+/* ================== INÍCIO ================== */
+load();
+show(db.locais.length ? 'bipar' : 'locais');
+renderSync();
+// pré-carrega o leitor de texto dos pré-lotes em segundo plano (fica guardado no aparelho depois da 1ª vez)
+setTimeout(()=>{ if(navigator.onLine && !(navigator.connection && navigator.connection.saveData)) prepararOcr().catch(()=>{}); }, 4000);
+document.querySelector('label[for=fotoPre]').addEventListener('click', ()=>{ prepararOcr().catch(()=>{}); });
+fotoGet('_remoto').then(r=>{ if(r && r.registros && db.planilha.url){ REMOTO = r; if(SESSAO && !document.querySelector('.sheet-bg')) render(); } });
+iniciarLogin();
+</script>
+</body>
+</html>
