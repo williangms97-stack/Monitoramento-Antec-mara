@@ -226,7 +226,6 @@ tr.sev-warn td:first-child{box-shadow:inset 5px 0 0 var(--warn)}
 </style>
 </head>
 <body>
-<div style="position:fixed;left:0;right:0;bottom:0;z-index:9999;background:#7c3aed;color:#fff;font:700 11px system-ui;text-align:center;padding:2px;pointer-events:none">VERSÃO DE TESTE · banco Supabase</div>
 <div class="wrap">
   <div class="shell" id="main" hidden>
     <div class="top">
@@ -336,8 +335,8 @@ const SUPA_URL = 'https://wohjgoeovnlcxevypqzy.supabase.co', SUPA_KEY = 'sb_publ
 const SUPA_H = { apikey:SUPA_KEY, Authorization:'Bearer '+SUPA_KEY };
 async function supaRpc(fn, args){
   const r = await fetch(SUPA_URL + '/rest/v1/rpc/' + fn, { method:'POST', headers:Object.assign({ 'Content-Type':'application/json' }, SUPA_H), body:JSON.stringify(args) });
-  const t = await r.text(); let j; try{ j = JSON.parse(t); }catch(e){ throw new Error('O banco (Supabase) não respondeu como esperado.'); }
-  if(!r.ok) throw new Error((j && (j.message || j.error)) || ('Erro ' + r.status + ' no banco'));
+  const t = await r.text(); let j; try{ j = JSON.parse(t); }catch(e){ throw new Error('A planilha não respondeu como esperado. Confira o endereço e se o acesso está como "Qualquer pessoa".'); }
+  if(!r.ok) throw new Error((j && (j.message || j.error)) || 'Erro na planilha');
   return j;
 }
 const supaPost = body => supaRpc('api_post', { d: body });
@@ -373,7 +372,7 @@ const chave = (t,l) => (t==='Pré-lote'?'P:':'L:') + String(l).toUpperCase();
 let SESSAO = null;
 try{ SESSAO = JSON.parse(sessionStorage.getItem('painelSessaoSupa')||'null'); }catch(e){}
 async function post(body){
-  const j = await supaPost(body); if(!j.ok) throw new Error(j.erro||'Erro no banco'); return j;
+  const j = await supaPost(body); if(!j.ok) throw new Error(j.erro||'Erro na planilha'); return j;
 }
 $('#loginForm').onsubmit = async e => {
   e.preventDefault();
@@ -396,7 +395,7 @@ async function carregar(){
   if(carregando) return; carregando = true;
   $('#dot').className = 'dot busy'; $('#liveTxt').textContent = 'Atualizando…';
   try{
-    const j = await supaGet({ acao:'dados', desde: Date.now()-DIAS_HISTORICO*86400000 }); if(!j.ok) throw new Error(j.erro||'Erro no banco');
+    const j = await supaGet({ acao:'dados', desde: Date.now()-DIAS_HISTORICO*86400000 }); if(!j.ok) throw new Error(j.erro||'Erro na planilha');
     DADOS = j; ultimo = Date.now(); $('#erro').hidden = true;
     processar(); render();
   }catch(err){
